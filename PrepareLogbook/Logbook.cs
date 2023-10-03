@@ -25,14 +25,14 @@ public class Logbook
 {
   public Vector2 GridPosition { get; set; } = Vector2.Zero;
 
-  private string[] AreaOrder;
-  private string[] FactionOrder;
+  private List<string> AreaOrder;
+  private List<string> FactionOrder;
   private Dictionary<string, BlessValue> BlessValues { get; set; }
 
   public Logbook()
   {
-    AreaOrder = TujenMem.Instance.Settings.PrepareLogbookSettings.AreaOrder.Value.Split(',');
-    FactionOrder = TujenMem.Instance.Settings.PrepareLogbookSettings.FactionOrder.Value.Split(',');
+    AreaOrder = TujenMem.Instance.Settings.PrepareLogbookSettings.AreaOrder;
+    FactionOrder = TujenMem.Instance.Settings.PrepareLogbookSettings.FactionOrder;
 
     BlessValues = new Dictionary<string, BlessValue>
     {
@@ -272,10 +272,10 @@ public class Logbook
       var areas = expeditionSaga.Areas;
       areas.Sort((node1, node2) =>
       {
-        int index1Array1 = Array.IndexOf(FactionOrder, node1.Faction);
-        int index2Array1 = Array.IndexOf(FactionOrder, node2.Faction);
-        int index1Array2 = Array.IndexOf(AreaOrder, node1.Name);
-        int index2Array2 = Array.IndexOf(AreaOrder, node2.Name);
+        int index1Array1 = FactionOrder.IndexOf(node1.Faction);
+        int index2Array1 = FactionOrder.IndexOf(node2.Faction);
+        int index1Array2 = AreaOrder.IndexOf(node1.Name);
+        int index2Array2 = AreaOrder.IndexOf(node2.Name);
 
         index1Array1 = index1Array1 == -1 ? int.MaxValue : index1Array1;
         index2Array1 = index2Array1 == -1 ? int.MaxValue : index2Array1;

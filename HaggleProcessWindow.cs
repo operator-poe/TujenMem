@@ -296,7 +296,7 @@ public class HaggleProcessWindow
       if (ninjaItem != null)
         items.Add((item, ninjaItem));
     }
-    if (TujenMem.Instance.Settings.EnableStatistics)
+    if (TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableStatistics)
     {
       foreach (var (item, ninjaItem) in items)
         Statistics.RecordItem(StatisticsWindowId, ninjaItem, item);

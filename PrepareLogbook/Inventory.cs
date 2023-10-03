@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
 using ExileCore.Shared.Enums;
-using ExileCore;
 using ExileCore.PoEMemory.Components;
 using SharpDX;
 

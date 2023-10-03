@@ -14,7 +14,6 @@ using ImGuiNET;
 using ExileCore.PoEMemory.Elements;
 using System.IO;
 using System.Media;
-using ExileCore.PoEMemory.Elements.AtlasElements;
 
 namespace TujenMem;
 
@@ -34,6 +33,9 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         {
             Instance = this;
         }
+
+        Settings.SetDefaults();
+        Settings.PrepareLogbookSettings.SetDefaults();
 
         Input.RegisterKey(Settings.HotKeySettings.StartHotKey);
         Settings.HotKeySettings.StartHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StartHotKey); };
@@ -194,7 +196,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             StopAllRoutines();
         }
 
-        if (Settings.EnableBuyAssistance)
+        if (Settings.SillyOrExperimenalFeatures.EnableBuyAssistance)
             BuyAssistance.BuyAssistance.Tick();
 
 
@@ -518,8 +520,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         var expeditionWindow = GameController.IngameState.IngameUi.ExpeditionWindow;
         if (Settings.ExpeditionMapHelper && expeditionWindow is { IsVisible: true })
         {
-            var _factionOrder = Settings.PrepareLogbookSettings.FactionOrder.Value.Split(',').ToArray();
-            var _areaOrder = Settings.PrepareLogbookSettings.AreaOrder.Value.Split(',').ToArray();
+            var _factionOrder = Settings.PrepareLogbookSettings.FactionOrder;
+            var _areaOrder = Settings.PrepareLogbookSettings.AreaOrder;
 
             var expeditionMap = expeditionWindow.GetChildAtIndex(0).GetChildAtIndex(0).GetChildAtIndex(0);
             var expeditionNodes = expeditionMap.Children.Select(ExpeditionNode.FromElement).ToList();
@@ -527,10 +529,10 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             {
                 expeditionNodes.Sort((node1, node2) =>
                 {
-                    int index1Array1 = Array.IndexOf(_factionOrder, node1.Faction);
-                    int index2Array1 = Array.IndexOf(_factionOrder, node2.Faction);
-                    int index1Array2 = Array.IndexOf(_areaOrder, node1.Area);
-                    int index2Array2 = Array.IndexOf(_areaOrder, node2.Area);
+                    int index1Array1 = _factionOrder.IndexOf(node1.Faction);
+                    int index2Array1 = _factionOrder.IndexOf(node2.Faction);
+                    int index1Array2 = _areaOrder.IndexOf(node1.Area);
+                    int index2Array2 = _areaOrder.IndexOf(node2.Area);
 
                     // If key isn't found in array, treat its index as int.MaxValue (i.e., put it at the end)
                     index1Array1 = index1Array1 == -1 ? int.MaxValue : index1Array1;
@@ -551,7 +553,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
         }
 
-        if (Settings.EnableBuyAssistance)
+        if (Settings.SillyOrExperimenalFeatures.EnableBuyAssistance)
             BuyAssistance.BuyAssistance.Render();
 
 
@@ -570,14 +572,14 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
         }
 
-        if (Settings.EnableVoranaWarning && _areaHasVorana)
+        if (Settings.SillyOrExperimenalFeatures.EnableVoranaWarning && _areaHasVorana)
         {
             if (_areaHasChangedVoranaSoundPlayer == null)
             {
                 var soundPath = Path.Combine(DirectoryFullName, "sounds\\vorana.wav");
                 _areaHasChangedVoranaSoundPlayer = new SoundPlayer(soundPath);
             }
-            if (Settings.EnableVoranaWarningSound)
+            if (Settings.SillyOrExperimenalFeatures.EnableVoranaWarningSound)
             {
                 if (_areaHasVoranaJumps == 0)
                 {
@@ -618,7 +620,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 _areaHasVoranaJumps = 0;
             }
         }
-        if (Settings.EnableVoranaWarningSound)
+        if (Settings.SillyOrExperimenalFeatures.EnableVoranaWarningSound)
         {
             if (_areaHasVoranaSoundClipJumps > 0)
             {

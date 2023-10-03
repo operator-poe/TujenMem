@@ -174,9 +174,9 @@ public class BuyAssistance
     {
       return;
     }
-    var show = TujenMem.Instance.Settings.EnableBuyAssistance.Value;
+    var show = TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableBuyAssistance.Value;
     ImGui.Begin("Tujen Buy Assistance", ref show);
-    TujenMem.Instance.Settings.EnableBuyAssistance.Value = show;
+    TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableBuyAssistance.Value = show;
 
     if (ImGui.BeginTable("BuyAssistanceTable", 7, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
     {

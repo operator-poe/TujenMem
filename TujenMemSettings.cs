@@ -32,6 +32,20 @@ public class CustomPrice
 
 public class TujenMemSettings : ISettings
 {
+
+    public static void HelpMarker(string desc)
+    {
+        ImGui.TextDisabled("(?)");
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.BeginTooltip();
+            ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+            ImGui.TextUnformatted(desc);
+            ImGui.PopTextWrapPos();
+            ImGui.EndTooltip();
+        }
+    }
+
     //Mandatory setting to allow enabling/disabling your plugin
     public ToggleNode Enable { get; set; } = new ToggleNode(false);
 
@@ -229,7 +243,10 @@ public class TujenMemSettings : ISettings
                 }
             }
         };
+    }
 
+    public void SetDefaults()
+    {
         if (ItemMappings.Count == 0)
         {
             ItemMappings.Add((new List<string>() { "HeistBlueprint", "Mansion" }, "Enchanted Blueprint"));
@@ -242,8 +259,6 @@ public class TujenMemSettings : ISettings
             ItemMappings.Add((new List<string>() { "HeistBlueprint", "Tunnels" }, "Unusual Blueprint"));
             ItemMappings.Add((new List<string>() { "HeistContract", "Deception" }, "Good Contract"));
         }
-
-
 
         if (CustomPrices.Count == 0)
         {
@@ -297,13 +312,6 @@ public class TujenMemSettings : ISettings
     public ToggleNode DebugOnly { get; set; } = new ToggleNode(false);
     public ToggleNode ShowDebugWindow { get; set; } = new ToggleNode(false);
     public ToggleNode ExpeditionMapHelper { get; set; } = new ToggleNode(true);
-    public ToggleNode EnableBuyAssistance { get; set; } = new ToggleNode(true);
-    public ToggleNode EnableStatistics { get; set; } = new ToggleNode(true);
-
-    [Menu("Enable Vorana Warning", "THIS IS REALLY SILLY. DO NOT ENABLE THIS UNLESS YOU WANT TO BE ANNOYED.")]
-    public ToggleNode EnableVoranaWarning { get; set; } = new ToggleNode(false);
-    [Menu("Enable Vorana Warning Sound", "THIS IS REALLY SILLY. DO NOT ENABLE THIS UNLESS YOU WANT TO BE ANNOYED.")]
-    public ToggleNode EnableVoranaWarningSound { get; set; } = new ToggleNode(false);
 
     public HotKeySettings HotKeySettings { get; set; } = new HotKeySettings();
 
@@ -343,6 +351,7 @@ public class TujenMemSettings : ISettings
     public TextNode CustomNameForInfluencedMaps { get; set; } = new TextNode("Influenced Map");
 
     public PrepareLogbookSettings PrepareLogbookSettings { get; set; } = new PrepareLogbookSettings();
+    public SillyOrExperimenalFeatures SillyOrExperimenalFeatures { get; set; } = new SillyOrExperimenalFeatures();
 }
 
 [Submenu(CollapsedByDefault = true)]
@@ -396,10 +405,122 @@ public class ArtifactValueSettings
 [Submenu(CollapsedByDefault = true)]
 public class PrepareLogbookSettings
 {
+    public List<string> FactionOrder { get; set; } = new List<string>();
+    public List<string> AreaOrder { get; set; } = new List<string>();
+    public PrepareLogbookSettings()
+    {
+        FactionOrderNode = new CustomNode
+        {
+            DrawDelegate = () =>
+            {
+                if (ImGui.TreeNode("Faction Order"))
+                {
+                    ImGui.SameLine();
+                    TujenMemSettings.HelpMarker("Order of factions to prioritize when rolling logbooks. (Drag and drop to reorder)");
+                    for (int n = 0; n < FactionOrder.Count; n++)
+                    {
+                        string item = FactionOrder[n];
+                        ImGui.Selectable(item);
+
+                        if (ImGui.IsItemActive() && !ImGui.IsItemHovered())
+                        {
+                            int nNext = n + (ImGui.GetMouseDragDelta(0).Y < 0.0f ? -1 : 1);
+                            if (nNext >= 0 && nNext < FactionOrder.Count)
+                            {
+                                FactionOrder[n] = FactionOrder[nNext];
+                                FactionOrder[nNext] = item;
+                                ImGui.ResetMouseDragDelta();
+                            }
+                        }
+
+                    }
+                    ImGui.Separator();
+                    ImGui.TreePop();
+                }
+                else
+                {
+                    ImGui.SameLine();
+                    TujenMemSettings.HelpMarker("Order of factions to prioritize when rolling logbooks. (Drag and drop to reorder)");
+                }
+            }
+        };
+        AreaOrderNode = new CustomNode
+        {
+            DrawDelegate = () =>
+            {
+                if (ImGui.TreeNode("Area Order"))
+                {
+                    ImGui.SameLine();
+                    TujenMemSettings.HelpMarker("Order of areas to prioritize when rolling logbooks. (Drag and drop to reorder)");
+                    for (int n = 0; n < AreaOrder.Count; n++)
+                    {
+                        string item = AreaOrder[n];
+                        ImGui.Selectable(item);
+
+                        if (ImGui.IsItemActive() && !ImGui.IsItemHovered())
+                        {
+                            int nNext = n + (ImGui.GetMouseDragDelta(0).Y < 0.0f ? -1 : 1);
+                            if (nNext >= 0 && nNext < AreaOrder.Count)
+                            {
+                                AreaOrder[n] = AreaOrder[nNext];
+                                AreaOrder[nNext] = item;
+                                ImGui.ResetMouseDragDelta();
+                            }
+                        }
+
+                    }
+                    ImGui.Separator();
+                    ImGui.TreePop();
+                }
+                else
+                {
+                    ImGui.SameLine();
+                    TujenMemSettings.HelpMarker("Order of areas to prioritize when rolling logbooks. (Drag and drop to reorder)");
+                }
+            }
+        };
+    }
+
+    public void SetDefaults()
+    {
+        if (FactionOrder.Count == 0)
+        {
+            FactionOrder = new List<string>{
+                "Knights of the Sun",
+                "Black Scythe Mercenaries",
+                "Druids of the Broken Circle",
+                "Order of the Chalice"
+            };
+        }
+        if (AreaOrder.Count == 0)
+        {
+            AreaOrder = new List<string>{
+                "Dried Riverbed",
+                "Volcanic Island",
+                "Karui Wargraves",
+                "Battleground Graves",
+                "Bluffs",
+                "Desert Ruins",
+                "Mountainside",
+                "Shipwreck Reef",
+                "Karui Wargraves",
+                "Scrublands",
+                "Vaal Temple",
+                "Cemetery",
+                "Forest Ruins",
+                "Utzaal Outskirts",
+                "Sarn Slums",
+                "Rotting Temple"
+            };
+        }
+    }
+
     public ToggleNode EnableRolling { get; set; } = new ToggleNode(true);
     public ToggleNode EnableBlessing { get; set; } = new ToggleNode(true);
-    public TextNode FactionOrder { get; set; } = new TextNode("Knights of the Sun,Black Scythe Mercenaries,Druids of the Broken Circle,Order of the Chalice");
-    public TextNode AreaOrder { get; set; } = new TextNode("Dried Riverbed,Volcanic Island,Karui Wargraves,Battleground Graves,Bluffs,Desert Ruins,Mountainside,Shipwreck Reef,Karui Wargraves,Scrublands,Vaal Temple,Cemetery,Forest Ruins,Utzaal Outskirts,Sarn Slums,Rotting Temple");
+    [JsonIgnore]
+    public CustomNode FactionOrderNode { get; set; }
+    [JsonIgnore]
+    public CustomNode AreaOrderNode { get; set; }
 
     public RangeNode<int> MinQuantity { get; set; } = new RangeNode<int>(60, 1, 120);
     public TextNode ModsBlackList { get; set; } = new TextNode("regenerate");
@@ -427,3 +548,17 @@ public class PrepareLogbookSettings
     public RangeNode<int> Bless_NumberOfRemnants_Min { get; set; } = new RangeNode<int>(30, 10, 40);
 }
 
+
+[Submenu(CollapsedByDefault = true)]
+public class SillyOrExperimenalFeatures
+{
+    [Menu("Enable Buy Assistance", "You probably don't want to use this.")]
+    public ToggleNode EnableBuyAssistance { get; set; } = new ToggleNode(false);
+    [Menu("Enable Statistics", "Output at: Plugins/(Temp or Compiled)/Data/Statistics.csv")]
+    public ToggleNode EnableStatistics { get; set; } = new ToggleNode(false);
+
+    [Menu("Enable Vorana Warning", "THIS IS REALLY SILLY. DO NOT ENABLE THIS UNLESS YOU WANT TO BE ANNOYED.")]
+    public ToggleNode EnableVoranaWarning { get; set; } = new ToggleNode(false);
+    [Menu("Enable Vorana Warning Sound", "THIS IS REALLY SILLY. DO NOT ENABLE THIS UNLESS YOU WANT TO BE ANNOYED.")]
+    public ToggleNode EnableVoranaWarningSound { get; set; } = new ToggleNode(false);
+}
