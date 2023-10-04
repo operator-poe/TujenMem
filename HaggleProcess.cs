@@ -93,11 +93,10 @@ public class HaggleProcess
 
     Log.Debug($"Stock: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
 
+    var currency = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo;
+    var reRolls = currency.TujenRerolls;
     try
     {
-      var currency = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo;
-
-      var reRolls = currency.TujenRerolls;
       var lesser = int.Parse(currency.Children[5].Children[1].Text.Replace(".", ""));
       var greater = int.Parse(currency.Children[9].Children[1].Text.Replace(".", ""));
       var grand = int.Parse(currency.Children[13].Children[1].Text.Replace(".", ""));
@@ -111,7 +110,49 @@ public class HaggleProcess
     }
     catch (Exception e)
     {
-      Log.Error($"Error while updating stock: {e.Message}");
+      Log.Error($"Error while updating stock: {e.ToString()}");
+      try
+      {
+        List<int> values = new List<int>();
+        foreach (var child in currency.Children)
+        {
+          if (!child.IsVisible)
+          {
+            continue;
+          }
+          foreach (var child2 in child.Children)
+          {
+            if (child2.Text == null)
+            {
+              continue;
+            }
+            if (child2.Text.Contains("."))
+            {
+              var value = int.Parse(child2.Text.Replace(".", ""));
+              values.Add(value);
+            }
+          }
+        }
+        if (values.Count != 4)
+        {
+          Log.Error($"Error while updating stock: Could not find all values. Found {values.Count} values.");
+          Log.Error(values.ToString());
+          return;
+        }
+        var lesser = values[0];
+        var greater = values[1];
+        var grand = values[2];
+        var exceptional = values[3];
+        Stock.Lesser.Value = lesser;
+        Stock.Greater.Value = greater;
+        Stock.Grand.Value = grand;
+        Stock.Exceptional.Value = exceptional;
+        Stock.Coins = reRolls;
+      }
+      catch (Exception e2)
+      {
+        Log.Error($"Error while updating stock: {e2.ToString()}");
+      }
     }
 
     Log.Debug($"Stock New: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
