@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -92,19 +93,26 @@ public class HaggleProcess
 
     Log.Debug($"Stock: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
 
-    var currency = HaggleWindow.CurrencyInfo;
+    try
+    {
+      var currency = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo;
 
-    var reRolls = currency.TujenRerolls;
-    var lesser = int.Parse(currency.Children[5].Children[1].Text.Replace(".", ""));
-    var greater = int.Parse(currency.Children[9].Children[1].Text.Replace(".", ""));
-    var grand = int.Parse(currency.Children[13].Children[1].Text.Replace(".", ""));
-    var exceptional = int.Parse(currency.Children[17].Children[1].Text.Replace(".", ""));
+      var reRolls = currency.TujenRerolls;
+      var lesser = int.Parse(currency.Children[5].Children[1].Text.Replace(".", ""));
+      var greater = int.Parse(currency.Children[9].Children[1].Text.Replace(".", ""));
+      var grand = int.Parse(currency.Children[13].Children[1].Text.Replace(".", ""));
+      var exceptional = int.Parse(currency.Children[17].Children[1].Text.Replace(".", ""));
 
-    Stock.Lesser.Value = lesser;
-    Stock.Greater.Value = greater;
-    Stock.Grand.Value = grand;
-    Stock.Exceptional.Value = exceptional;
-    Stock.Coins = reRolls;
+      Stock.Lesser.Value = lesser;
+      Stock.Greater.Value = greater;
+      Stock.Grand.Value = grand;
+      Stock.Exceptional.Value = exceptional;
+      Stock.Coins = reRolls;
+    }
+    catch (Exception e)
+    {
+      Log.Error($"Error while updating stock: {e.Message}");
+    }
 
     Log.Debug($"Stock New: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
   }
