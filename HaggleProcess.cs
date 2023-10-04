@@ -63,10 +63,9 @@ public class HaggleProcess
     }
   }
 
-  public IEnumerator Update()
+  public bool Update()
   {
-    UpdateStock();
-    yield break;
+    return UpdateStock();
   }
 
   public bool CanRun()
@@ -83,7 +82,7 @@ public class HaggleProcess
     return canRun;
   }
 
-  private void UpdateStock()
+  private bool UpdateStock()
   {
     Log.Debug("Update of Stock requested.");
     if (Stock == null)
@@ -137,7 +136,7 @@ public class HaggleProcess
         {
           Log.Error($"Error while updating stock: Could not find all values. Found {values.Count} values.");
           Log.Error(values.ToString());
-          return;
+          return false;
         }
         var lesser = values[0];
         var greater = values[1];
@@ -152,9 +151,11 @@ public class HaggleProcess
       catch (Exception e2)
       {
         Log.Error($"Error while updating stock: {e2.ToString()}");
+        return false;
       }
     }
 
     Log.Debug($"Stock New: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
+    return true;
   }
 }

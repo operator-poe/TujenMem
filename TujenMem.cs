@@ -413,7 +413,12 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 
         Log.Debug("Initiaizing Haggle process");
         _process = new HaggleProcess(mainWindow, GameController, NinjaItems, Settings);
-        yield return _process.Update();
+        var u = _process.Update();
+        if (!u)
+        {
+            Log.Error("Could not initialize Haggle process (Update stock failed))");
+            yield break;
+        }
         while (_process.CanRun() || Settings.DebugOnly)
         {
             _process.InitializeWindow();
@@ -442,7 +447,12 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                     yield break;
                 }
             }
-            yield return _process.Update();
+            var u2 = _process.Update();
+            if (!u2)
+            {
+                Log.Error("Could not continue Haggle process (Update stock failed))");
+                yield break;
+            }
             yield return new WaitTime(Settings.HoverItemDelay * 3);
         }
 
