@@ -48,32 +48,35 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Task.Run(async () =>
         {
             var worker = new FetchNinja(Settings.League, DirectoryFullName);
+            Log.Debug("Checking if should fetch Ninja");
             if (worker.CheckIfShouldFetch())
             {
+                Log.Debug("Fetching Ninja");
                 var result = await worker.Fetch();
                 if (result == null)
                 {
-                    LogMsg("Fetched Ninja");
+                    Log.Debug("Fetched Ninja");
                 }
                 else
                 {
-                    LogError("Failed to fetch Ninja. " + result);
+                    Log.Error("Failed to fetch Ninja. " + result);
                     return;
                 }
             }
             else
             {
-                LogMsg("No need to fetch Ninja");
+                Log.Debug("No need to fetch Ninja");
             }
             if (worker.CheckIfCanParse)
             {
+                Log.Debug("Parsing Ninja");
                 var items = await worker.ParseNinjaItems();
                 NinjaItems = NinjaItemListToDict(items);
-                LogMsg("Parsed Ninja");
+                Log.Debug($"Parsed {NinjaItems.Count} Ninja items");
             }
             else
             {
-                LogError("Failed to parse Ninja. Not all data is available.");
+                Log.Error("Failed to parse Ninja. Not all data is available.");
                 return;
             }
         });
@@ -134,23 +137,23 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 
     private async Task FetchPrices()
     {
-        LogMsg("Fetching Ninja");
+        Log.Debug("Fetching Ninja");
         var worker = new FetchNinja(Settings.League, DirectoryFullName);
         if (worker.CheckIfShouldFetch())
         {
             var result = await worker.Fetch();
             if (result == null)
             {
-                LogMsg("Fetched Ninja");
+                Log.Debug("Fetched Ninja");
             }
             else
             {
-                LogError("Failed to fetch Ninja. " + result);
+                Log.Error("Failed to fetch Ninja. " + result);
             }
         }
         else
         {
-            LogMsg("No need to fetch Ninja");
+            Log.Debug("No need to fetch Ninja");
         }
     }
 
@@ -163,36 +166,44 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     {
         if (Settings.HotKeySettings.StartHotKey.PressedOnce())
         {
+            Log.Debug("Start Hotkey pressed");
             if (Core.ParallelRunner.FindByName(_coroutineName) == null)
             {
+                Log.Debug("Starting Haggle Coroutine");
                 _haggleState = HaggleState.StartUp;
                 Core.ParallelRunner.Run(new Coroutine(HaggleCoroutine(), this, _coroutineName));
             }
             else
             {
+                Log.Debug("Stopping Haggle Coroutine");
                 _haggleState = HaggleState.Cancelling;
             }
         }
         if (Settings.HotKeySettings.RollAndBlessHotKey.PressedOnce())
         {
+            Log.Debug("Roll and Bless Hotkey pressed");
             if (Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless) == null)
             {
+                Log.Debug("Starting Roll and Bless Coroutine");
                 Core.ParallelRunner.Run(new Coroutine(PrepareLogbook.Runner.RollAndBlessLogbooksCoroutine(), this, PrepareLogbook.Runner.CoroutineNameRollAndBless));
             }
             else
             {
+                Log.Debug("Stopping Roll and Bless Coroutine");
                 var routine = Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless);
                 routine?.Done();
             }
         }
         if (_haggleState is HaggleState.Cancelling)
         {
+            Log.Debug("Cancelling Haggle Coroutine");
             var routine = Core.ParallelRunner.FindByName(_coroutineName);
             routine?.Done();
             _haggleState = HaggleState.Idle;
         }
         if (Settings.HotKeySettings.StopHotKey.PressedOnce())
         {
+            Log.Debug("Stop Hotkey pressed");
             StopAllRoutines();
         }
 
@@ -205,6 +216,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 
     public bool ShouldEmptyInventory()
     {
+        Log.Debug("Checking if should empty inventory");
         var inventory = GameController.IngameState.Data.ServerData.PlayerInventories[0].Inventory;
         var inventoryItems = inventory.InventorySlotItems;
 
@@ -216,25 +228,26 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
             if (item.PosX >= 10 && item.PosX < 11)
             {
+                Log.Debug("Should empty inventory");
                 return true;
             }
         }
+        Log.Debug("Should not empty inventory");
         return false;
     }
 
-    public IEnumerator EmptyInventoryCoRoutine(bool _inventory_function_only = false)
+    public IEnumerator EmptyInventoryCoRoutine()
     {
-        LogMsg("Emptying Inventory");
-        if (!_inventory_function_only)
-        {
-            yield return ExitAllWindows();
-        }
+        Log.Debug("Emptying Inventory");
+        yield return ExitAllWindows();
         yield return FindAndClickStash();
 
         var inventory = GameController.IngameState.Data.ServerData.PlayerInventories[0].Inventory;
         var inventoryItems = inventory.InventorySlotItems;
 
         inventoryItems = inventoryItems.OrderBy(x => x.PosX).ThenBy(x => x.PosY).ToList();
+
+        Log.Debug($"Found {inventoryItems.Count} items in inventory");
 
         Input.KeyDown(Keys.ControlKey);
         foreach (var item in inventoryItems)
@@ -250,16 +263,16 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         }
         Input.KeyUp(Keys.ControlKey);
 
-        if (!_inventory_function_only)
-        {
-            yield return FindAndClickTujen();
-        }
+        Log.Debug("Inventory emptied");
+
+        yield return FindAndClickTujen();
 
         yield return new WaitTime(Settings.HoverItemDelay * 3);
     }
 
     private IEnumerator FindAndClickTujen()
     {
+        Log.Debug("Finding and clicking Tujen");
         var itemsOnGround = GameController.IngameState.IngameUi.ItemsOnGroundLabels;
         var haggleWindow = GameController.IngameState.IngameUi.HaggleWindow;
 
@@ -283,7 +296,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
             if (!labelOnGround.IsVisible)
             {
-                LogError("Tujen not visible");
+                Log.Error("Tujen not visible");
                 yield break;
             }
             Input.SetCursorPos(labelOnGround.Label.GetClientRect().Center);
@@ -295,20 +308,23 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             yield return new WaitFunctionTimed(() => haggleWindow is { IsVisible: true }, true, 2000, "Tujen not reached in time");
             if (haggleWindow is { IsVisible: false })
             {
-                LogError("Tujen not visible");
+                Log.Error("Tujen not visible");
                 yield break;
             }
         }
+        Log.Debug("Found and clicked Tujen");
         yield return true;
     }
 
     private IEnumerator FindAndClickStash()
     {
+        Log.Debug("Finding and clicking Stash");
         var itemsOnGround = GameController.IngameState.IngameUi.ItemsOnGroundLabels;
         var stash = GameController.IngameState.IngameUi.StashElement;
 
         if (stash is { IsVisible: true })
         {
+            Log.Debug("Stash already open");
             yield break;
         }
 
@@ -329,20 +345,23 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             yield return new WaitFunctionTimed(() => stash is { IsVisible: true }, true, 2000, "Stash not reached in time");
             if (stash is { IsVisible: false })
             {
-                LogError("Stash not visible");
+                Log.Error("Stash not visible");
                 yield break;
             }
         }
+        Log.Debug("Found and clicked Stash");
         yield return true;
     }
 
     private IEnumerator ExitAllWindows()
     {
+        Log.Debug("Exiting all windows");
         var haggleWindowSub = GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow;
         if (haggleWindowSub is { IsVisible: true })
         {
             yield return Input.KeyPress(Keys.Escape);
             yield return new WaitTime(Settings.HoverItemDelay * 3);
+            Log.Debug("Exited Haggle Sub window");
         }
 
         var haggleWindow = GameController.IngameState.IngameUi.HaggleWindow;
@@ -350,6 +369,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         {
             yield return Input.KeyPress(Keys.Escape);
             yield return new WaitTime(Settings.HoverItemDelay * 3);
+            Log.Debug("Exited Haggle window");
         }
 
         var tujenDialog = GameController.IngameState.IngameUi.ExpeditionNpcDialog;
@@ -357,6 +377,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         {
             yield return Input.KeyPress(Keys.Escape);
             yield return new WaitTime(Settings.HoverItemDelay * 3);
+            Log.Debug("Exited Tujen dialog");
         }
 
         var stashWindow = GameController.IngameState.IngameUi.StashElement;
@@ -364,6 +385,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         {
             yield return Input.KeyPress(Keys.Escape);
             yield return new WaitTime(Settings.HoverItemDelay * 3);
+            Log.Debug("Exited Stash window");
         }
 
         var inventory = GameController.IngameState.IngameUi.InventoryPanel;
@@ -371,6 +393,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         {
             yield return Input.KeyPress(Keys.Escape);
             yield return new WaitTime(Settings.HoverItemDelay * 3);
+            Log.Debug("Exited Inventory window");
         }
     }
 
@@ -378,15 +401,17 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private IEnumerator HaggleCoroutine()
     {
         _haggleState = HaggleState.Running;
+        Log.Debug("Starting Haggle process");
         yield return FindAndClickTujen();
         var mainWindow = GameController.IngameState.IngameUi.HaggleWindow;
 
         if (mainWindow is { IsVisible: false })
         {
-            DebugWindow.LogError($"Haggle window not open!");
+            Log.Error("Haggle window not open!");
             yield break;
         }
 
+        Log.Debug("Initiaizing Haggle process");
         _process = new HaggleProcess(mainWindow, GameController, NinjaItems, Settings);
         yield return _process.Update();
         while (_process.CanRun() || Settings.DebugOnly)
@@ -412,7 +437,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 yield return new WaitFunctionTimed(() => oldCount > GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo.TujenRerolls, true, 2000, "Could not Refresh");
                 if (oldCount == mainWindow.InventoryItems.Count)
                 {
-                    LogError("Could not Refresh");
+                    Log.Error("Could not Refresh");
                     StopAllRoutines();
                     yield break;
                 }
@@ -432,10 +457,11 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 
     private IEnumerator ReRollWindow()
     {
+        Log.Debug("ReRolling window");
         var win = GameController.IngameState.IngameUi.HaggleWindow;
         if (win is { IsVisible: false })
         {
-            DebugWindow.LogError($"Haggle window not open!");
+            Log.Error("Haggle window not open!");
             StopAllRoutines();
             yield break;
         }
@@ -443,10 +469,12 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         yield return new WaitTime(Settings.HoverItemDelay);
         Input.Click(MouseButtons.Left);
         yield return new WaitTime(Settings.HoverItemDelay * 3);
+        Log.Debug("ReRolled window");
     }
 
     private void StopAllRoutines()
     {
+        Log.Debug("Stopping all routines");
         var routine = Core.ParallelRunner.FindByName(_coroutineName);
         routine?.Done();
         routine = Core.ParallelRunner.FindByName(_empty_inventory_coroutine_name);

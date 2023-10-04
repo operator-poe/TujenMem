@@ -35,8 +35,10 @@ public class HaggleProcessWindow
 
   public void ReadItems()
   {
+    Log.Debug("Reading available items for haggling");
     Items.Clear();
 
+    Log.Debug($"HaggleWindow.InventoryItems.Count: {HaggleWindow.InventoryItems.Count}");
     foreach (NormalInventoryItem inventoryItem in HaggleWindow.InventoryItems)
     {
       var baseItem = GameController.Files.BaseItemTypes.Translate(inventoryItem.Item.Path);
@@ -149,10 +151,12 @@ public class HaggleProcessWindow
         });
       }
     }
+    Log.Debug("Finished reading items for haggling");
   }
 
   public void ApplyMappingToItems()
   {
+    Log.Debug("Applying mapping to items");
     foreach (HaggleItem item in Items)
     {
       foreach (var mapping in Settings.ItemMappings)
@@ -175,6 +179,7 @@ public class HaggleProcessWindow
 
   public void FilterItems()
   {
+    Log.Debug("Filtering items");
     foreach (HaggleItem item in Items)
     {
       var white = IsWhitelisted(item);
@@ -208,6 +213,7 @@ public class HaggleProcessWindow
 
   public IEnumerator GetItemPrices()
   {
+    Log.Debug("Getting item prices");
     List<(HaggleItem, NinjaItem)> items = new();
 
     foreach (NormalInventoryItem inventoryItem in HaggleWindow.InventoryItems)
@@ -296,6 +302,7 @@ public class HaggleProcessWindow
       if (ninjaItem != null)
         items.Add((item, ninjaItem));
     }
+    Log.Debug($"Finished getting item prices. {items.Count} items priced.");
     if (TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableStatistics)
     {
       foreach (var (item, ninjaItem) in items)
@@ -305,6 +312,7 @@ public class HaggleProcessWindow
 
   public IEnumerator HaggleForItems()
   {
+    Log.Debug("Haggling for items");
     foreach (HaggleItem item in Items)
     {
       if (item.State != HaggleItemState.Priced)
@@ -322,7 +330,7 @@ public class HaggleProcessWindow
       yield return new WaitFunctionTimed(() => haggleWindow is { IsVisible: true }, true, 500, "HaggleWindow not visible");
       if (haggleWindow is { IsVisible: false })
       {
-        DebugWindow.LogError("HaggleWindow not visible");
+        Log.Error("HaggleWindow not visible");
         var routine = Core.ParallelRunner.FindByName("TujenMem_Haggle");
         routine?.Done();
         continue;
@@ -355,6 +363,7 @@ public class HaggleProcessWindow
         yield return new WaitTime(Settings.HoverItemDelay * 10);
       }
     }
+    Log.Debug("Finished haggling for items");
     yield return true;
   }
 

@@ -352,6 +352,12 @@ public class TujenMemSettings : ISettings
 
     public PrepareLogbookSettings PrepareLogbookSettings { get; set; } = new PrepareLogbookSettings();
     public SillyOrExperimenalFeatures SillyOrExperimenalFeatures { get; set; } = new SillyOrExperimenalFeatures();
+
+    public ListNode LogLevel { get; set; } = new ListNode
+    {
+        Values = new List<string> { "None", "Debug", "Error" },
+        Value = "Error"
+    };
 }
 
 [Submenu(CollapsedByDefault = true)]

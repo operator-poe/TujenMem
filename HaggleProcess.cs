@@ -27,7 +27,7 @@ public class HaggleProcess
     Settings = settings;
     Initialize();
 
-    DebugWindow.LogMsg($"HaggleProcess initialized with {Stock.Coins} coins.");
+    Log.Debug($"HaggleProcess initialized with {Stock.Coins} coins.");
   }
 
   private void Initialize()
@@ -70,20 +70,27 @@ public class HaggleProcess
 
   public bool CanRun()
   {
-    return Stock.Coins > 0
+    var canRun = Stock.Coins > 0
             && (!TujenMem.Instance.Settings.ArtifactValueSettings.EnableLesser || Stock.Lesser.Value > 300)
             && (!TujenMem.Instance.Settings.ArtifactValueSettings.EnableGreater || Stock.Greater.Value > 300)
             && (!TujenMem.Instance.Settings.ArtifactValueSettings.EnableGrand || Stock.Grand.Value > 300)
             && (!TujenMem.Instance.Settings.ArtifactValueSettings.EnableExceptional || Stock.Exceptional.Value > 300);
     ;
+
+    Log.Debug($"CanRun: {canRun} - Coins: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
+
+    return canRun;
   }
 
   private void UpdateStock()
   {
+    Log.Debug("Update of Stock requested.");
     if (Stock == null)
     {
       Stock = new HaggleStock(Settings);
     }
+
+    Log.Debug($"Stock: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
 
     var currency = HaggleWindow.CurrencyInfo;
 
@@ -98,5 +105,7 @@ public class HaggleProcess
     Stock.Grand.Value = grand;
     Stock.Exceptional.Value = exceptional;
     Stock.Coins = reRolls;
+
+    Log.Debug($"Stock New: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
   }
 }
