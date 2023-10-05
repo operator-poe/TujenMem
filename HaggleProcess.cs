@@ -96,10 +96,10 @@ public class HaggleProcess
     var reRolls = currency.TujenRerolls;
     try
     {
-      var lesser = int.Parse(currency.Children[5].Children[1].Text.Replace(".", ""));
-      var greater = int.Parse(currency.Children[9].Children[1].Text.Replace(".", ""));
-      var grand = int.Parse(currency.Children[13].Children[1].Text.Replace(".", ""));
-      var exceptional = int.Parse(currency.Children[17].Children[1].Text.Replace(".", ""));
+      var lesser = int.Parse(currency.Children[5].Children[1].Text.Replace(".", "").Replace(" ", "").Replace(",", ""));
+      var greater = int.Parse(currency.Children[9].Children[1].Text.Replace(".", "").Replace(" ", "").Replace(",", ""));
+      var grand = int.Parse(currency.Children[13].Children[1].Text.Replace(".", "").Replace(" ", "").Replace(",", ""));
+      var exceptional = int.Parse(currency.Children[17].Children[1].Text.Replace(".", "").Replace(" ", "").Replace(",", ""));
 
       Stock.Lesser.Value = lesser;
       Stock.Greater.Value = greater;
@@ -125,9 +125,9 @@ public class HaggleProcess
             {
               continue;
             }
-            if (child2.Text.Contains("."))
+            if (child2.Text.Contains(".") || child2.Text.Contains(","))
             {
-              var value = int.Parse(child2.Text.Replace(".", ""));
+              var value = int.Parse(child2.Text.Replace(".", "").Replace(" ", "").Replace(",", ""));
               values.Add(value);
             }
           }

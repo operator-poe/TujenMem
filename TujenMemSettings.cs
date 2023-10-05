@@ -552,6 +552,9 @@ public class PrepareLogbookSettings
 
     public ToggleNode Bless_NumberOfRemnants { get; set; } = new ToggleNode(false);
     public RangeNode<int> Bless_NumberOfRemnants_Min { get; set; } = new RangeNode<int>(30, 10, 40);
+
+    public ToggleNode Bless_AdditionalSuffixMod { get; set; } = new ToggleNode(false);
+    public RangeNode<int> Bless_AdditionalSuffixMod_Min { get; set; } = new RangeNode<int>(30, 10, 40);
 }
 
 

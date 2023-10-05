@@ -240,7 +240,7 @@ public class HaggleProcessWindow
       var ttPriceSection = ttBody.Children[ttBody.Children.Count - 1];
       var ttPriceHead = ttPriceSection.Children[0];
       var ttPriceBody = ttPriceSection.Children[1];
-      var ttPrice = int.Parse(ttPriceBody.Children[0].Text.Replace("x", "").Replace(".", ""));
+      var ttPrice = int.Parse(ttPriceBody.Children[0].Text.Replace("x", "").Replace(".", "").Replace(" ", "").Replace(",", ""));
       var ttPriceType = ttPriceBody.Children[2].Text;
 
       item.Price = new HaggleCurrency(ttPriceType, ttPrice, Settings);

@@ -98,6 +98,15 @@ public class Logbook
                 NameContains = "MapExpeditionRelics",
                 MinValue = TujenMem.Instance.Settings.PrepareLogbookSettings.Bless_NumberOfRemnants_Min.Value
             }
+        },
+        {
+            "MapExpeditionExtraRelicSuffixChance",
+            new BlessValue
+            {
+                Enabled = TujenMem.Instance.Settings.PrepareLogbookSettings.Bless_AdditionalSuffixMod.Value,
+                NameContains = "MapExpeditionExtraRelicSuffixChance",
+                MinValue = TujenMem.Instance.Settings.PrepareLogbookSettings.Bless_AdditionalSuffixMod_Min.Value
+            }
         }
     };
   }
