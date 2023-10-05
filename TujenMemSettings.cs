@@ -318,7 +318,7 @@ public class TujenMemSettings : ISettings
     public TextNode League { get; set; } = new TextNode("Ancestor");
 
     [Menu("HoverItem Delay", "Delay used to wait inbetween checks for the Hoveritem (in ms).")]
-    public RangeNode<int> HoverItemDelay { get; set; } = new RangeNode<int>(30, 0, 100);
+    public RangeNode<int> HoverItemDelay { get; set; } = new RangeNode<int>(15, 0, 100);
 
 
     // ---------------------------------------------------------------------------------------------------
