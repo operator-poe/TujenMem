@@ -126,6 +126,11 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private readonly static string _reroll_coroutine_name = "TujenMem_Reroll";
     public override Job Tick()
     {
+        if (Error.IsDisplaying && IsAnyRoutineRunning)
+        {
+            StopAllRoutines();
+            return null;
+        }
         if (Settings.HotKeySettings.StartHotKey.PressedOnce())
         {
             Log.Debug("Start Hotkey pressed");
@@ -358,6 +363,39 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         }
     }
 
+    private bool StartUpChecks()
+    {
+        Error.Clear();
+        if (!Ninja.IsValid || Ninja.Items.Count == 0)
+        {
+            Error.Add("Startup error", "Ninja prices could not be loaded.\nPlease check the settings and make sure all files are downloaded and valid.");
+        }
+        // check haggle stock
+        if (HaggleStock.Coins == 0)
+        {
+            Error.Add("Startup error", "No coins found in Haggle window.\nPlease make sure you have coins.\n(Check HUD log for errors)");
+        }
+        if (HaggleStock.Lesser == 0 && Settings.ArtifactValueSettings.EnableLesser)
+        {
+            Error.Add("Startup error", "No Lesser artifacts found in Haggle window.\nPlease make sure you have Lesser artifacts.\n(Check HUD log for errors)");
+        }
+        if (HaggleStock.Greater == 0 && Settings.ArtifactValueSettings.EnableGreater)
+        {
+            Error.Add("Startup error", "No Greater artifacts found in Haggle window.\nPlease make sure you have Greater artifacts.\n(Check HUD log for errors)");
+        }
+        if (HaggleStock.Grand == 0 && Settings.ArtifactValueSettings.EnableGrand)
+        {
+            Error.Add("Startup error", "No Grand artifacts found in Haggle window.\nPlease make sure you have Grand artifacts.\n(Check HUD log for errors)");
+        }
+        if (HaggleStock.Exceptional == 0 && Settings.ArtifactValueSettings.EnableExceptional)
+        {
+            Error.Add("Startup error", "No Exceptional artifacts found in Haggle window.\nPlease make sure you have Exceptional artifacts.\n(Check HUD log for errors)");
+        }
+
+        Error.ShowIfNeeded();
+        return Error.IsDisplaying;
+    }
+
     private HaggleProcess _process = null;
     private IEnumerator HaggleCoroutine()
     {
@@ -372,14 +410,13 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             yield break;
         }
 
-        Log.Debug("Initiaizing Haggle process");
-        _process = new HaggleProcess(mainWindow, GameController, Settings);
-        var u = _process.Update();
-        if (!u)
+        if (StartUpChecks())
         {
-            Log.Error("Could not initialize Haggle process (Update stock failed))");
             yield break;
         }
+
+        Log.Debug("Initiaizing Haggle process");
+        _process = new HaggleProcess(mainWindow, GameController, Settings);
         while (_process.CanRun() || Settings.DebugOnly)
         {
             _process.InitializeWindow();
@@ -394,7 +431,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 yield return EmptyInventoryCoRoutine();
             }
             yield return new WaitTime(Settings.HoverItemDelay * 3);
-            if (_process.Stock.Coins > 0)
+            if (HaggleStock.Coins > 0)
             {
                 var oldCount = GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo.TujenRerolls;
 
@@ -407,12 +444,6 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                     StopAllRoutines();
                     yield break;
                 }
-            }
-            var u2 = _process.Update();
-            if (!u2)
-            {
-                Log.Error("Could not continue Haggle process (Update stock failed))");
-                yield break;
             }
             yield return new WaitTime(Settings.HoverItemDelay * 3);
         }
@@ -462,9 +493,22 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Input.KeyUp(Keys.ControlKey);
     }
 
+    private bool IsAnyRoutineRunning
+    {
+        get
+        {
+            return Core.ParallelRunner.FindByName(_coroutineName) != null
+                || Core.ParallelRunner.FindByName(_empty_inventory_coroutine_name) != null
+                || Core.ParallelRunner.FindByName(_reroll_coroutine_name) != null
+                || Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless) != null
+                || Core.ParallelRunner.FindByName(BuyAssistance.BuyAssistance._sendPmCoroutineName) != null
+                || Core.ParallelRunner.FindByName(BuyAssistance.BuyAssistance._extractMoneyFromStashCoroutineName) != null;
+        }
+    }
+
     public override void Render()
     {
-        ErrorIndicator.Render();
+        Error.Render();
 
         if (Settings.ShowDebugWindow && (HaggleState is HaggleState.Running || Settings.DebugOnly))
         {
