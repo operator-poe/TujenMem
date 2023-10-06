@@ -220,24 +220,62 @@ public class HaggleProcessWindow
       Input.SetCursorPos(position);
 
       var tt = inventoryItem.Tooltip;
-      yield return new WaitFunctionTimed(() => tt.Children.Count > 0 && tt.Children[0].Children.Count > 0, true, 1000, "Price Tooltip TIMEOUT");
+      yield return new WaitFunctionTimed(() =>
+      {
+        var ttBody = tt?.GetChildFromIndices(0, 1);
+        return tt != null && ttBody != null && tt.GetChildFromIndices(0, 1, ttBody.Children.Count - 1, 1) != null;
+      }, false, 1000);
       if (tt.Children.Count == 0 || tt.Children[0].Children.Count == 0)
       {
-        continue;
+        Error.Add("Error while reading tooltip", $"Tooltip structure is unexpected. Item: {item.Name}");
+        Error.Add("Tooltip Structure", Error.VisualizeElementTree(tt));
+        Error.Show();
+        yield break;
       }
 
-      var ttMain = tt.Children[0];
-      var ttHead = ttMain.Children[0];
-      var ttBody = ttMain.Children[1];
-      var ttPriceSection = ttBody.Children[ttBody.Children.Count - 1];
-      var ttPriceHead = ttPriceSection.Children[0];
-      var ttPriceBody = ttPriceSection.Children[1];
+      var ttHead = tt.GetChildFromIndices(0, 0);
+      var ttBody = tt.GetChildFromIndices(0, 1);
+      if (ttHead == null || ttBody == null)
+      {
+        Error.Add("Error while reading tooltip", $"Tooltip has no head or body.\nItem: {item.Name}.\nPlease check your hover delay settings and try again.");
+        Error.Add("Tooltip Structure", Error.VisualizeElementTree(tt));
+        Error.Show();
+        yield break;
+      }
+      var ttPriceSection = ttBody.GetChildAtIndex(ttBody.Children.Count - 1);
+      if (ttPriceSection == null || ttPriceSection.Children.Count < 2)
+      {
+        Error.Add("Error while reading tooltip", $"Tooltip has no price section.\nItem: {item.Name}\nPlease check your hover delay settings and try again.");
+        Error.Add("Tooltip Structure", Error.VisualizeElementTree(tt));
+        Error.Show();
+        yield break;
+      }
+      var ttPriceHead = ttPriceSection.GetChildAtIndex(0);
+      var ttPriceBody = ttPriceSection.GetChildAtIndex(1);
+      if (ttPriceHead == null || ttPriceBody == null)
+      {
+        Error.Add("Error while reading tooltip", $"Tooltip has no price head or body.\nItem: {item.Name}\nPlease check your hover delay settings and try again.");
+        Error.Add("Tooltip Structure", Error.VisualizeElementTree(tt));
+        Error.Show();
+        yield break;
+      }
 
-      string lesserString = ttPriceBody.Children[0].Text;
-      string cleaned = new string(lesserString.Where(char.IsDigit).ToArray()).Trim();
-      var ttPrice = int.Parse(cleaned);
+      string priceString = ttPriceBody.GetChildAtIndex(0).Text;
+      string cleaned = new string(priceString.Where(char.IsDigit).ToArray()).Trim();
+      var ttPrice = 0;
+      try
+      {
+        ttPrice = int.Parse(cleaned);
+      }
+      catch (Exception e)
+      {
+        Error.Add("Error while reading tooltip", $"Error parsing price: {e.ToString()}\nText: {priceString}\nCleaned: {cleaned}");
+        Error.Add("Tooltip Structure", Error.VisualizeElementTree(tt));
+        Error.Show();
+        yield break;
+      }
 
-      var ttPriceType = ttPriceBody.Children[2].Text;
+      var ttPriceType = ttPriceBody.GetChildAtIndex(2).Text;
 
       item.Price = new HaggleCurrency(ttPriceType, ttPrice);
       item.Value = 0;
@@ -284,9 +322,14 @@ public class HaggleProcessWindow
           item.Value = ninjaItem.ChaosValue * item.Amount;
         }
       }
+      else
+      {
+        Error.AddAndShow("Error while pricing item", $"There was no equivalent Ninja entry for {item.Name}.\nPlease check your item mappings and your Ninja settings.");
+        yield break;
+      }
 
       var itemPrice = item?.Price?.TotalValue() ?? 0;
-      if (itemPrice * 0.7f >= item.Value)
+      if (itemPrice * TujenMem.Instance.Settings.ArtifactValueSettings.ItemPriceMultiplier.Value >= item.Value)
       {
         item.State = HaggleItemState.TooExpensive;
       }
@@ -294,6 +337,7 @@ public class HaggleProcessWindow
       {
         item.State = HaggleItemState.Priced;
       }
+
 
       if (ninjaItem != null)
         items.Add((item, ninjaItem));
@@ -324,8 +368,7 @@ public class HaggleProcessWindow
       yield return new WaitFunctionTimed(() => TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: true }, false, 500, "HaggleWindow not visible");
       if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: false })
       {
-        Log.Error("HaggleWindow not visible");
-        TujenMem.Instance.HaggleState = HaggleState.Cancelling;
+        Error.AddAndShow("Error while haggling", $"HaggleWindow not visible.\nA click on an item has not resulted in the HaggleWindow being visible.\nItem: {item.Name}.\nPlease check your hover delay settings and try again.");
         yield break;
       }
 

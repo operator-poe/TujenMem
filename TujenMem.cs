@@ -48,77 +48,9 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         return base.Initialise();
     }
 
-    private Dictionary<string, List<NinjaItem>> NinjaItemListToDict(List<NinjaItem> items)
-    {
-        try
-        {
-            var dict = items.GroupBy(x => x.Name).ToDictionary(x => x.Key, x => x.ToList());
-            foreach (var pr in Settings.CustomPrices)
-            {
-                var customPrice = pr.Item2 != null ? new CustomPrice(pr.Item1, pr.Item2 ?? 0f) : new CustomPrice(pr.Item1, pr.Item3);
-                var item = dict.ContainsKey(customPrice.Name) ? dict[customPrice.Name].First() : new NinjaItem(customPrice.Name, 0);
-                if (customPrice.Value != null)
-                {
-                    item.ChaosValue = (float)customPrice.Value;
-                }
-                else
-                {
-                    try
-                    {
-                        string replacedExpr = dict.Aggregate(customPrice.Expression, (current, pair) => current.Replace($"{{{pair.Key}}}", pair.Value.First().ChaosValue.ToString(CultureInfo.InvariantCulture)));
-                        float result = Evaluate(replacedExpr);
-                        item.ChaosValue = result;
-                    }
-                    catch (Exception e)
-                    {
-                        LogError(customPrice.Name + ":" + customPrice.Expression + " - " + e.Message);
-                    }
-                }
-                dict[customPrice.Name] = new List<NinjaItem> { item };
-            }
-            return dict;
-        }
-        catch (Exception e)
-        {
-            Log.Error(e.Message);
-            return new();
-        }
-    }
-
-    static float Evaluate(string expression)
-    {
-        DataTable table = new();
-        table.Columns.Add("expression", typeof(string), expression);
-        DataRow row = table.NewRow();
-        table.Rows.Add(row);
-        return float.Parse((string)row["expression"]);
-    }
-
     public override void AreaChange(AreaInstance area)
     {
         _areaHasVorana = false;
-    }
-
-    private async Task FetchPrices()
-    {
-        Log.Debug("Fetching Ninja");
-        var worker = new FetchNinja(Settings.League, DirectoryFullName);
-        if (worker.CheckIfShouldFetch())
-        {
-            var result = await worker.Fetch();
-            if (result == null)
-            {
-                Log.Debug("Fetched Ninja");
-            }
-            else
-            {
-                Log.Error("Failed to fetch Ninja. " + result);
-            }
-        }
-        else
-        {
-            Log.Debug("No need to fetch Ninja");
-        }
     }
 
     private readonly static string _coroutineName = "TujenMem_Haggle";
@@ -126,11 +58,6 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private readonly static string _reroll_coroutine_name = "TujenMem_Reroll";
     public override Job Tick()
     {
-        if (Error.IsDisplaying && IsAnyRoutineRunning)
-        {
-            StopAllRoutines();
-            return null;
-        }
         if (Settings.HotKeySettings.StartHotKey.PressedOnce())
         {
             Log.Debug("Start Hotkey pressed");
@@ -262,7 +189,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
             if (!labelOnGround.IsVisible)
             {
-                Log.Error("Tujen not visible");
+                Error.AddAndShow("Error", "Tujen not visible.\nMake sure that he is positioned within short reach.");
                 yield break;
             }
             Input.SetCursorPos(labelOnGround.Label.GetClientRect().Center);
@@ -271,10 +198,10 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             yield return new WaitTime(Settings.HoverItemDelay);
             Input.Click(MouseButtons.Left);
             Input.KeyUp(Keys.ControlKey);
-            yield return new WaitFunctionTimed(() => haggleWindow is { IsVisible: true }, true, 2000, "Tujen not reached in time");
+            yield return new WaitFunctionTimed(() => haggleWindow is { IsVisible: true }, false, 1000);
             if (haggleWindow is { IsVisible: false })
             {
-                Log.Error("Tujen not visible");
+                Error.AddAndShow("Error", "Could not reach Tujen in time.\nMake sure that he is positioned within short reach.");
                 yield break;
             }
         }
@@ -308,10 +235,10 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             Input.SetCursorPos(labelOnGround.Label.GetClientRect().Center);
             yield return new WaitTime(Settings.HoverItemDelay);
             Input.Click(MouseButtons.Left);
-            yield return new WaitFunctionTimed(() => stash is { IsVisible: true }, true, 2000, "Stash not reached in time");
+            yield return new WaitFunctionTimed(() => stash is { IsVisible: true }, false, 1000);
             if (stash is { IsVisible: false })
             {
-                Log.Error("Stash not visible");
+                Error.AddAndShow("Error", "Could not reach Stash in time.\nMake sure that it is positioned within short reach.");
                 yield break;
             }
         }
@@ -416,7 +343,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         }
 
         Log.Debug("Initiaizing Haggle process");
-        _process = new HaggleProcess(mainWindow, GameController, Settings);
+        _process = new HaggleProcess();
         while (_process.CanRun() || Settings.DebugOnly)
         {
             _process.InitializeWindow();
@@ -433,15 +360,14 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             yield return new WaitTime(Settings.HoverItemDelay * 3);
             if (HaggleStock.Coins > 0)
             {
-                var oldCount = GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo.TujenRerolls;
+                var oldCount = HaggleStock.Coins;
 
                 yield return ReRollWindow();
 
-                yield return new WaitFunctionTimed(() => oldCount > GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo.TujenRerolls, true, 2000, "Could not Refresh");
-                if (oldCount == mainWindow.InventoryItems.Count)
+                yield return new WaitFunctionTimed(() => oldCount > HaggleStock.Coins, false, 500);
+                if (oldCount == HaggleStock.Coins)
                 {
-                    Log.Error("Could not Refresh");
-                    StopAllRoutines();
+                    Error.AddAndShow("Error", "Window did not reroll after attempting a click.\nCheck your hover delay and make sure that the window is not obstructed.");
                     yield break;
                 }
             }
@@ -460,21 +386,19 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private IEnumerator ReRollWindow()
     {
         Log.Debug("ReRolling window");
-        var win = GameController.IngameState.IngameUi.HaggleWindow;
-        if (win is { IsVisible: false })
+        if (GameController.IngameState.IngameUi.HaggleWindow is { IsVisible: false })
         {
-            Log.Error("Haggle window not open!");
-            StopAllRoutines();
+            Error.AddAndShow("Error while ReRolling", "Haggle window not open!");
             yield break;
         }
-        Input.SetCursorPos(win.RefreshItemsButton.GetClientRect().Center);
+        Input.SetCursorPos(GameController.IngameState.IngameUi.HaggleWindow.RefreshItemsButton.GetClientRect().Center);
         yield return new WaitTime(Settings.HoverItemDelay);
         Input.Click(MouseButtons.Left);
         yield return new WaitTime(Settings.HoverItemDelay * 3);
         Log.Debug("ReRolled window");
     }
 
-    private void StopAllRoutines()
+    public void StopAllRoutines()
     {
         Log.Debug("Stopping all routines");
         var routine = Core.ParallelRunner.FindByName(_coroutineName);
@@ -493,7 +417,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Input.KeyUp(Keys.ControlKey);
     }
 
-    private bool IsAnyRoutineRunning
+    public bool IsAnyRoutineRunning
     {
         get
         {

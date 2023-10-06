@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
+using ExileCore.PoEMemory;
 using ImGuiNET;
 
 namespace TujenMem;
@@ -35,6 +37,10 @@ public class Error
     public static void Show()
     {
         showErrorModal = true;
+        if (TujenMem.Instance.IsAnyRoutineRunning)
+        {
+            TujenMem.Instance.StopAllRoutines();
+        }
     }
 
     public static void ShowIfNeeded()
@@ -94,6 +100,27 @@ public class Error
             ImGui.EndPopup();
         }
         ImGui.PopStyleColor();
+    }
+
+    public static string VisualizeElementTree(Element node, int depth = 0)
+    {
+        StringBuilder sb = new StringBuilder();
+        string displayText = node.Text != null ? node.Text : $"({node.GetType().Name})";
+
+        // Create prefix based on depth
+        string prefix = new string(' ', depth * 2);
+        if (node.IndexInParent >= 0)
+        {
+            displayText = $"[{node.IndexInParent}] {displayText}";
+        }
+        sb.AppendLine(prefix + "|-" + displayText);
+
+        for (int i = 0; i < node.Children.Count; i++)
+        {
+            sb.Append(VisualizeElementTree(node.Children[i], depth + 1));
+        }
+
+        return sb.ToString();
     }
 
 }

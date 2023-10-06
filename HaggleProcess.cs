@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
 using System.Linq;
-using ExileCore;
-using ExileCore.PoEMemory.Elements.ExpeditionElements;
 using ExileCore.Shared;
 
 namespace TujenMem;
@@ -11,7 +9,7 @@ public class HaggleProcess
 {
   public HaggleStock Stock;
 
-  public HaggleProcess(ExpeditionVendorElement haggleWindow, GameController gameController, TujenMemSettings settings)
+  public HaggleProcess()
   {
     Log.Debug($"HaggleProcess initialized with {HaggleStock.Coins} coins.");
   }
@@ -31,8 +29,16 @@ public class HaggleProcess
     yield return new WaitTime(0);
     CurrentWindow.FilterItems();
     yield return new WaitTime(0);
+
+    var attempts = 0;
     while (CurrentWindow.Items.Any(x => x.State == HaggleItemState.Unpriced))
     {
+      attempts++;
+      if (attempts > 3)
+      {
+        Error.AddAndShow("Error pricing items.", $"Too many attempts to price items. Stopping.\nThis could be related to missing Ninja data.");
+        yield break;
+      }
       yield return CurrentWindow.GetItemPrices();
       yield return new WaitTime(0);
     }

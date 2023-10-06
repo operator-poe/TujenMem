@@ -414,6 +414,8 @@ public class ArtifactValueSettings
     public ToggleNode EnableExceptional { get; set; } = new ToggleNode(true);
     [Menu("Value Exceptional", "Value of Exceptional Black Scythe Artifact")]
     public RangeNode<float> ValueExceptional { get; set; } = new RangeNode<float>(0.060f, 0, 0.1f);
+    [Menu("Buy items when value is > x% of it's price")]
+    public RangeNode<float> ItemPriceMultiplier { get; set; } = new RangeNode<float>(0.7f, 0.0f, 1.0f);
 }
 
 
