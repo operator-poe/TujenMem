@@ -243,6 +243,13 @@ public class TujenMemSettings : ISettings
                 }
             }
         };
+        FetchNinja = new CustomNode
+        {
+            DrawDelegate = () =>
+            {
+                Ninja.RenderSettings();
+            }
+        };
     }
 
     public void SetDefaults()
@@ -308,7 +315,8 @@ public class TujenMemSettings : ISettings
     }
 
     [JsonIgnore]
-    public ButtonNode FetchNinja { get; set; } = new ButtonNode();
+    public CustomNode FetchNinja { get; set; }
+    [Menu("Enable Test Mode", "Will only try to read items from the Haggle inventory. Won't haggle, won't refresh window. Use together with 'Show Debug Window' to see what's going on.")]
     public ToggleNode DebugOnly { get; set; } = new ToggleNode(false);
     public ToggleNode ShowDebugWindow { get; set; } = new ToggleNode(false);
     public ToggleNode ExpeditionMapHelper { get; set; } = new ToggleNode(true);

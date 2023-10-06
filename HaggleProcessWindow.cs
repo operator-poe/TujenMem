@@ -15,22 +15,12 @@ namespace TujenMem;
 
 public class HaggleProcessWindow
 {
-  private GameController GameController { get; set; }
-  private ExpeditionVendorElement HaggleWindow;
   public List<HaggleItem> Items { get; set; } = new();
-
-  private readonly Dictionary<string, List<NinjaItem>> _ninjaItems = new();
-
-  private TujenMemSettings Settings;
 
   private readonly string StatisticsWindowId;
 
-  public HaggleProcessWindow(ExpeditionVendorElement haggleWindow, GameController gameController, TujenMemSettings settings, Dictionary<string, List<NinjaItem>> ninjaItems)
+  public HaggleProcessWindow()
   {
-    GameController = gameController;
-    HaggleWindow = haggleWindow;
-    Settings = settings;
-    _ninjaItems = ninjaItems;
     StatisticsWindowId = Statistics.GetWindowId();
   }
 
@@ -39,10 +29,11 @@ public class HaggleProcessWindow
     Log.Debug("Reading available items for haggling");
     Items.Clear();
 
-    Log.Debug($"HaggleWindow.InventoryItems.Count: {HaggleWindow.InventoryItems.Count}");
-    foreach (NormalInventoryItem inventoryItem in HaggleWindow.InventoryItems)
+
+    Log.Debug($"HaggleWindow.InventoryItems.Count: {TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems.Count}");
+    foreach (NormalInventoryItem inventoryItem in TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems)
     {
-      var baseItem = GameController.Files.BaseItemTypes.Translate(inventoryItem.Item.Path);
+      var baseItem = TujenMem.Instance.GameController.Files.BaseItemTypes.Translate(inventoryItem.Item.Path);
       var stack = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Stack>();
       var type = baseItem.ClassName;
       var address = inventoryItem.Address;
@@ -160,19 +151,19 @@ public class HaggleProcessWindow
     Log.Debug("Applying mapping to items");
     foreach (HaggleItem item in Items)
     {
-      foreach (var mapping in Settings.ItemMappings)
+      foreach (var mapping in TujenMem.Instance.Settings.ItemMappings)
       {
         if (mapping.Item1.TrueForAll(x => item.Name.Contains(x) || item.Type.Contains(x)))
         {
           item.Name = mapping.Item2;
         }
       }
-      if (item is HaggleItemMap && Settings.CustomNameForInfluencedMaps != "")
+      if (item is HaggleItemMap && TujenMem.Instance.Settings.CustomNameForInfluencedMaps != "")
       {
         var map = item as HaggleItemMap;
         if (map.IsInfluenced)
         {
-          item.Name = Settings.CustomNameForInfluencedMaps;
+          item.Name = TujenMem.Instance.Settings.CustomNameForInfluencedMaps;
         }
       }
     }
@@ -197,7 +188,7 @@ public class HaggleProcessWindow
       if (item is HaggleItemMap)
       {
         var map = item as HaggleItemMap;
-        if ((!Settings.MapsEnabled || map.MapTier < Settings.MinMapTier) && !map.IsUnique && !map.IsInfluenced)
+        if ((!TujenMem.Instance.Settings.MapsEnabled || map.MapTier < TujenMem.Instance.Settings.MinMapTier) && !map.IsUnique && !map.IsInfluenced)
         {
           item.State = HaggleItemState.Rejected;
           continue;
@@ -217,7 +208,7 @@ public class HaggleProcessWindow
     Log.Debug("Getting item prices");
     List<(HaggleItem, NinjaItem)> items = new();
 
-    foreach (NormalInventoryItem inventoryItem in HaggleWindow.InventoryItems)
+    foreach (NormalInventoryItem inventoryItem in TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems)
     {
       var item = Items.Find(x => x.Address == inventoryItem.Address);
       if (item == null || item.State != HaggleItemState.Unpriced || item.State == HaggleItemState.Priced || item.State == HaggleItemState.TooExpensive)
@@ -248,16 +239,16 @@ public class HaggleProcessWindow
 
       var ttPriceType = ttPriceBody.Children[2].Text;
 
-      item.Price = new HaggleCurrency(ttPriceType, ttPrice, Settings);
+      item.Price = new HaggleCurrency(ttPriceType, ttPrice);
       item.Value = 0;
       NinjaItem ninjaItem = null;
-      if (_ninjaItems.ContainsKey(item.Name))
+      if (Ninja.Items.ContainsKey(item.Name))
       {
-        ninjaItem = _ninjaItems[item.Name].Find(x => x.ChaosValue > 0);
+        ninjaItem = Ninja.Items[item.Name].Find(x => x.ChaosValue > 0);
         if (item is HaggleItemGem)
         {
           var gem = item as HaggleItemGem;
-          ninjaItem = _ninjaItems[item.Name].Find(x =>
+          ninjaItem = Ninja.Items[item.Name].Find(x =>
           {
             if (x is NinjaItemGem)
             {
@@ -275,7 +266,7 @@ public class HaggleProcessWindow
         else if (item is HaggleItemClusterJewel)
         {
           var cluster = item as HaggleItemClusterJewel;
-          ninjaItem = _ninjaItems[item.Name].Find(x =>
+          ninjaItem = Ninja.Items[item.Name].Find(x =>
           {
             if (x is NinjaItemClusterJewel)
             {
@@ -327,45 +318,42 @@ public class HaggleProcessWindow
 
       var position = item.Position;
       Input.SetCursorPos(position);
-      yield return new WaitTime(Settings.HoverItemDelay);
+      yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
       Input.Click(MouseButtons.Left);
 
-      var haggleWindow = HaggleWindow.TujenHaggleWindow;
-
-      yield return new WaitFunctionTimed(() => haggleWindow is { IsVisible: true }, true, 500, "HaggleWindow not visible");
-      if (haggleWindow is { IsVisible: false })
+      yield return new WaitFunctionTimed(() => TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: true }, false, 500, "HaggleWindow not visible");
+      if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: false })
       {
         Log.Error("HaggleWindow not visible");
-        var routine = Core.ParallelRunner.FindByName("TujenMem_Haggle");
-        routine?.Done();
-        continue;
+        TujenMem.Instance.HaggleState = HaggleState.Cancelling;
+        yield break;
       }
 
       var attempts = 0;
-      while (haggleWindow is { IsVisible: true })
+      while (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: true })
       {
         attempts++;
-        yield return new WaitTime(Settings.HoverItemDelay);
-        var maxOffer = haggleWindow.ArtifactOfferSliderElement.CurrentMaxOffer;
-        var minOffer = haggleWindow.ArtifactOfferSliderElement.CurrentMinOffer;
-        var currentOffer = haggleWindow.ArtifactOfferSliderElement.CurrentOffer;
+        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+        var maxOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentMaxOffer;
+        var minOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentMinOffer;
+        var currentOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentOffer;
 
-        var multiplier = attempts == 1 ? Settings.HaggleMultiplierSettings.Try1 : attempts == 2 ? Settings.HaggleMultiplierSettings.Try2 : Settings.HaggleMultiplierSettings.Try3;
+        var multiplier = attempts == 1 ? TujenMem.Instance.Settings.HaggleMultiplierSettings.Try1 : attempts == 2 ? TujenMem.Instance.Settings.HaggleMultiplierSettings.Try2 : TujenMem.Instance.Settings.HaggleMultiplierSettings.Try3;
         while (currentOffer > maxOffer * multiplier && currentOffer > minOffer)
         {
-          if (haggleWindow is { IsVisible: false } || attempts > 3)
+          if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: false } || attempts > 3)
           {
             break;
           }
           Input.VerticalScroll(false, attempts <= 1 ? 10 : 1);
           yield return new WaitTime(0);
-          currentOffer = haggleWindow.ArtifactOfferSliderElement.CurrentOffer;
+          currentOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentOffer;
         }
         yield return new WaitTime(0);
-        Input.SetCursorPos(haggleWindow.ConfirmButton.GetClientRect().Center);
-        yield return new WaitTime(Settings.HoverItemDelay);
+        Input.SetCursorPos(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect().Center);
+        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
         Input.Click(MouseButtons.Left);
-        yield return new WaitTime(Settings.HoverItemDelay * 10);
+        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay * 10);
       }
     }
     Log.Debug("Finished haggling for items");
@@ -374,7 +362,7 @@ public class HaggleProcessWindow
 
   private bool IsBlacklisted(HaggleItem item)
   {
-    foreach (string black in Settings.Blacklist)
+    foreach (string black in TujenMem.Instance.Settings.Blacklist)
     {
       if (item.Name.Contains(black) || item.Type.Contains(black))
       {
@@ -386,7 +374,7 @@ public class HaggleProcessWindow
 
   private bool IsWhitelisted(HaggleItem item)
   {
-    foreach (string white in Settings.Whitelist)
+    foreach (string white in TujenMem.Instance.Settings.Whitelist)
     {
       if (item.Name.Contains(white) || item.Type.Contains(white))
       {

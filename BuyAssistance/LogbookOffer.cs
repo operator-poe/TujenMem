@@ -21,7 +21,7 @@ public class LogbookOffer
   {
     get
     {
-      TujenMem.Instance.NinjaItems.TryGetValue("Divine Orb", out var divine);
+      Ninja.Items.TryGetValue("Divine Orb", out var divine);
       return (int)(divine?.First().ChaosValue ?? 230f);
     }
   }

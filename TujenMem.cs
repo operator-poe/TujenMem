@@ -21,9 +21,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 {
     internal static TujenMem Instance;
 
-    private HaggleState _haggleState = HaggleState.Idle;
-
-    public Dictionary<string, List<NinjaItem>> NinjaItems = new();
+    public HaggleState HaggleState = HaggleState.Idle;
 
     private bool _areaHasVorana = false;
 
@@ -44,42 +42,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey);
         Settings.HotKeySettings.RollAndBlessHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey); };
 
-        Settings.FetchNinja.OnPressed += async () => await FetchPrices();
-        Task.Run(async () =>
-        {
-            var worker = new FetchNinja(Settings.League, DirectoryFullName);
-            Log.Debug("Checking if should fetch Ninja");
-            if (worker.CheckIfShouldFetch())
-            {
-                Log.Debug("Fetching Ninja");
-                var result = await worker.Fetch();
-                if (result == null)
-                {
-                    Log.Debug("Fetched Ninja");
-                }
-                else
-                {
-                    Log.Error("Failed to fetch Ninja. " + result);
-                    return;
-                }
-            }
-            else
-            {
-                Log.Debug("No need to fetch Ninja");
-            }
-            if (worker.CheckIfCanParse)
-            {
-                Log.Debug("Parsing Ninja");
-                var items = await worker.ParseNinjaItems();
-                NinjaItems = NinjaItemListToDict(items);
-                Log.Debug($"Parsed {NinjaItems.Count} Ninja items");
-            }
-            else
-            {
-                Log.Error("Failed to parse Ninja. Not all data is available.");
-                return;
-            }
-        });
+        Ninja.CheckIntegrity();
+        Task.Run(Ninja.Parse);
 
         return base.Initialise();
     }
@@ -116,7 +80,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         }
         catch (Exception e)
         {
-            LogError(e.Message);
+            Log.Error(e.Message);
             return new();
         }
     }
@@ -157,8 +121,6 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         }
     }
 
-
-
     private readonly static string _coroutineName = "TujenMem_Haggle";
     private readonly static string _empty_inventory_coroutine_name = "TujenMem_Inventory";
     private readonly static string _reroll_coroutine_name = "TujenMem_Reroll";
@@ -170,13 +132,13 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             if (Core.ParallelRunner.FindByName(_coroutineName) == null)
             {
                 Log.Debug("Starting Haggle Coroutine");
-                _haggleState = HaggleState.StartUp;
+                HaggleState = HaggleState.StartUp;
                 Core.ParallelRunner.Run(new Coroutine(HaggleCoroutine(), this, _coroutineName));
             }
             else
             {
                 Log.Debug("Stopping Haggle Coroutine");
-                _haggleState = HaggleState.Cancelling;
+                HaggleState = HaggleState.Cancelling;
             }
         }
         if (Settings.HotKeySettings.RollAndBlessHotKey.PressedOnce())
@@ -194,11 +156,11 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 routine?.Done();
             }
         }
-        if (_haggleState is HaggleState.Cancelling)
+        if (HaggleState is HaggleState.Cancelling)
         {
             Log.Debug("Cancelling Haggle Coroutine");
             StopAllRoutines();
-            _haggleState = HaggleState.Idle;
+            HaggleState = HaggleState.Idle;
         }
         if (Settings.HotKeySettings.StopHotKey.PressedOnce())
         {
@@ -399,7 +361,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private HaggleProcess _process = null;
     private IEnumerator HaggleCoroutine()
     {
-        _haggleState = HaggleState.Running;
+        HaggleState = HaggleState.Running;
         Log.Debug("Starting Haggle process");
         yield return FindAndClickTujen();
         var mainWindow = GameController.IngameState.IngameUi.HaggleWindow;
@@ -411,7 +373,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         }
 
         Log.Debug("Initiaizing Haggle process");
-        _process = new HaggleProcess(mainWindow, GameController, NinjaItems, Settings);
+        _process = new HaggleProcess(mainWindow, GameController, Settings);
         var u = _process.Update();
         if (!u)
         {
@@ -496,13 +458,15 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         routine?.Done();
         routine = Core.ParallelRunner.FindByName(BuyAssistance.BuyAssistance._extractMoneyFromStashCoroutineName);
         routine?.Done();
-        _haggleState = HaggleState.Idle;
+        HaggleState = HaggleState.Idle;
         Input.KeyUp(Keys.ControlKey);
     }
 
     public override void Render()
     {
-        if (Settings.ShowDebugWindow && (_haggleState is HaggleState.Running || Settings.DebugOnly))
+        ErrorIndicator.Render();
+
+        if (Settings.ShowDebugWindow && (HaggleState is HaggleState.Running || Settings.DebugOnly))
         {
             var show = Settings.ShowDebugWindow.Value;
             // Set next window size

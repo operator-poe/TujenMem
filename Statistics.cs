@@ -11,7 +11,7 @@ public class Statistics
   {
     get
     {
-      return Path.Combine(TujenMem.Instance.DirectoryFullName, "Data");
+      return Path.Combine(TujenMem.Instance.DirectoryFullName, "Statistics");
     }
   }
 

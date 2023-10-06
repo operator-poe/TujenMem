@@ -12,20 +12,10 @@ namespace TujenMem;
 
 public class HaggleProcess
 {
-  private readonly GameController _gameController;
-  private readonly ExpeditionVendorElement HaggleWindow;
   public HaggleStock Stock;
 
-  private readonly Dictionary<string, List<NinjaItem>> _ninjaItems = new();
-
-  private readonly TujenMemSettings Settings;
-
-  public HaggleProcess(ExpeditionVendorElement haggleWindow, GameController gameController, Dictionary<string, List<NinjaItem>> ninjaItems, TujenMemSettings settings)
+  public HaggleProcess(ExpeditionVendorElement haggleWindow, GameController gameController, TujenMemSettings settings)
   {
-    _gameController = gameController;
-    HaggleWindow = haggleWindow;
-    _ninjaItems = ninjaItems;
-    Settings = settings;
     Initialize();
 
     Log.Debug($"HaggleProcess initialized with {Stock.Coins} coins.");
@@ -40,7 +30,7 @@ public class HaggleProcess
 
   public void InitializeWindow()
   {
-    CurrentWindow = new HaggleProcessWindow(HaggleWindow, _gameController, Settings, _ninjaItems);
+    CurrentWindow = new HaggleProcessWindow();
   }
 
   public IEnumerator Run()
@@ -57,7 +47,7 @@ public class HaggleProcess
       yield return new WaitTime(0);
     }
     yield return new WaitTime(0);
-    if (!Settings.DebugOnly)
+    if (!TujenMem.Instance.Settings.DebugOnly)
     {
       yield return CurrentWindow.HaggleForItems();
     }
@@ -87,7 +77,7 @@ public class HaggleProcess
     Log.Debug("Update of Stock requested.");
     if (Stock == null)
     {
-      Stock = new HaggleStock(Settings);
+      Stock = new HaggleStock();
     }
 
     Log.Debug($"Stock: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
