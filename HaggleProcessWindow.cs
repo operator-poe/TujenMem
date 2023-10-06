@@ -9,6 +9,7 @@ using System.Security.Cryptography.X509Certificates;
 using System;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace TujenMem;
 
@@ -240,7 +241,11 @@ public class HaggleProcessWindow
       var ttPriceSection = ttBody.Children[ttBody.Children.Count - 1];
       var ttPriceHead = ttPriceSection.Children[0];
       var ttPriceBody = ttPriceSection.Children[1];
-      var ttPrice = int.Parse(ttPriceBody.Children[0].Text.Replace("x", "").Replace(".", "").Replace(" ", "").Replace(",", ""));
+
+      string lesserString = ttPriceBody.Children[0].Text;
+      string cleaned = new string(lesserString.Where(char.IsDigit).ToArray()).Trim();
+      var ttPrice = int.Parse(cleaned);
+
       var ttPriceType = ttPriceBody.Children[2].Text;
 
       item.Price = new HaggleCurrency(ttPriceType, ttPrice, Settings);

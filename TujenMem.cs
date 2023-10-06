@@ -197,8 +197,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         if (_haggleState is HaggleState.Cancelling)
         {
             Log.Debug("Cancelling Haggle Coroutine");
-            var routine = Core.ParallelRunner.FindByName(_coroutineName);
-            routine?.Done();
+            StopAllRoutines();
             _haggleState = HaggleState.Idle;
         }
         if (Settings.HotKeySettings.StopHotKey.PressedOnce())
@@ -457,7 +456,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         }
 
 
-        if (!Settings.DebugOnly)
+        if (!Settings.DebugOnly && Settings.EmptyInventoryAfterHaggling)
         {
             yield return EmptyInventoryCoRoutine();
         }

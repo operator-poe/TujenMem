@@ -93,67 +93,33 @@ public class HaggleProcess
     Log.Debug($"Stock: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
 
     var currency = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo;
-    var reRolls = currency.TujenRerolls;
-    try
-    {
-      var lesser = int.Parse(currency.Children[5].Children[1].Text.Replace(".", "").Replace(" ", "").Replace(",", ""));
-      var greater = int.Parse(currency.Children[9].Children[1].Text.Replace(".", "").Replace(" ", "").Replace(",", ""));
-      var grand = int.Parse(currency.Children[13].Children[1].Text.Replace(".", "").Replace(" ", "").Replace(",", ""));
-      var exceptional = int.Parse(currency.Children[17].Children[1].Text.Replace(".", "").Replace(" ", "").Replace(",", ""));
 
-      Stock.Lesser.Value = lesser;
-      Stock.Greater.Value = greater;
-      Stock.Grand.Value = grand;
-      Stock.Exceptional.Value = exceptional;
-      Stock.Coins = reRolls;
-    }
-    catch (Exception e)
-    {
-      Log.Error($"Error while updating stock: {e.ToString()}");
-      try
-      {
-        List<int> values = new List<int>();
-        foreach (var child in currency.Children)
-        {
-          if (!child.IsVisible)
-          {
-            continue;
-          }
-          foreach (var child2 in child.Children)
-          {
-            if (child2.Text == null)
-            {
-              continue;
-            }
-            if (child2.Text.Contains(".") || child2.Text.Contains(","))
-            {
-              var value = int.Parse(child2.Text.Replace(".", "").Replace(" ", "").Replace(",", ""));
-              values.Add(value);
-            }
-          }
-        }
-        if (values.Count != 4)
-        {
-          Log.Error($"Error while updating stock: Could not find all values. Found {values.Count} values.");
-          Log.Error(values.ToString());
-          return false;
-        }
-        var lesser = values[0];
-        var greater = values[1];
-        var grand = values[2];
-        var exceptional = values[3];
-        Stock.Lesser.Value = lesser;
-        Stock.Greater.Value = greater;
-        Stock.Grand.Value = grand;
-        Stock.Exceptional.Value = exceptional;
-        Stock.Coins = reRolls;
-      }
-      catch (Exception e2)
-      {
-        Log.Error($"Error while updating stock: {e2.ToString()}");
-        return false;
-      }
-    }
+    string reRollsString = currency.Children[1].Children[1].Text;
+    string cleaned = new string(reRollsString.Where(char.IsDigit).ToArray()).Trim();
+    var reRolls = int.Parse(cleaned);
+
+    string lesserString = currency.Children[5].Children[1].Text;
+    cleaned = new string(lesserString.Where(char.IsDigit).ToArray()).Trim();
+    var lesser = int.Parse(cleaned);
+
+    string greaterString = currency.Children[9].Children[1].Text;
+    cleaned = new string(greaterString.Where(char.IsDigit).ToArray());
+    var greater = int.Parse(cleaned);
+
+    string grandString = currency.Children[13].Children[1].Text;
+    cleaned = new string(grandString.Where(char.IsDigit).ToArray());
+    var grand = int.Parse(cleaned);
+
+
+    string exceptionalString = currency.Children[17].Children[1].Text;
+    cleaned = new string(exceptionalString.Where(char.IsDigit).ToArray());
+    var exceptional = int.Parse(cleaned);
+
+    Stock.Lesser.Value = lesser;
+    Stock.Greater.Value = greater;
+    Stock.Grand.Value = grand;
+    Stock.Exceptional.Value = exceptional;
+    Stock.Coins = reRolls;
 
     Log.Debug($"Stock New: {Stock.Coins} - Lesser: {Stock.Lesser.Value} - Greater: {Stock.Greater.Value} - Grand: {Stock.Grand.Value} - Exceptional: {Stock.Exceptional.Value}");
     return true;

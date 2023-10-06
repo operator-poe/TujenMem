@@ -319,6 +319,7 @@ public class TujenMemSettings : ISettings
 
     [Menu("HoverItem Delay", "Delay used to wait inbetween checks for the Hoveritem (in ms).")]
     public RangeNode<int> HoverItemDelay { get; set; } = new RangeNode<int>(15, 0, 100);
+    public ToggleNode EmptyInventoryAfterHaggling { get; set; } = new ToggleNode(false);
 
 
     // ---------------------------------------------------------------------------------------------------
