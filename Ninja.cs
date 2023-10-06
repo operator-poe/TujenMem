@@ -210,7 +210,7 @@ public class Ninja
     private static void ValidityIndicator()
     {
         ImGui.SameLine();
-        ImGui.Text("Data Validity: ");
+        ImGui.Text("Validity: ");
         ImGui.SameLine();
         if (IsValid)
         {
