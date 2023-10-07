@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Set output
         id: vars
-        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+        run: echo "tag=$(grep "<Version>.*</Version>" TujenMem.csproj | sed -E "s/.*<Version>(.*)<\/Version>/\1/")" >> $GITHUB_OUTPUT
       # Clone the external repo
       - name: Clone PoEHelper repository
         run: git clone https://github.com/TehCheat/PoEHelper.git /tmp/PoEHelper
