@@ -1,0 +1,64 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: .NET
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Install Wine
+      #   run: |
+      #     sudo dpkg --add-architecture i386
+      #     sudo apt-get update
+      #     sudo apt-get install -y wine64 wine32
+
+      # Clone the external repo
+      - name: Clone PoEHelper repository
+        run: git clone https://github.com/TehCheat/PoEHelper.git /tmp/PoEHelper
+      # Copy your project to the desired sub-path
+      - name: Create directory
+        run: mkdir -p /tmp/PoEHelper/Plugins/Source/TujenMem
+      - name: Copy my project to PoEHelper
+        run: cp -r ./* /tmp/PoEHelper/Plugins/Source/TujenMem/
+      # .NET steps
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 6.0.x
+      - name: Restore dependencies
+        working-directory: /tmp/PoEHelper/Plugins/Source/TujenMem
+        run: dotnet restore
+      - name: Build
+        working-directory: /tmp/PoEHelper/Plugins/Source/TujenMem
+        run: dotnet build -o /tmp/PoEHelper/Plugins/Compiled/TujenMem
+      - name: Create assets directory
+        working-directory: /tmp/PoEHelper/Plugins/Compiled/TujenMem
+        run: mkdir -p ./sounds
+      - name: Copy assets
+        working-directory: /tmp/PoEHelper/Plugins/Source/TujenMem
+        run: cp -r ./sounds/* /tmp/PoEHelper/Plugins/Compiled/TujenMem
+      # Release Steps
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Upload Build Artifacts
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: /tmp/PoEHelper/Plugins/Compiled/TujenMem/TujenMem.dll
+          asset_name: TujenMem.dll # Name to display
+          asset_content_type: application/octet-stream
