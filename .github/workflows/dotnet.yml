@@ -6,8 +6,8 @@ name: .NET
 on:
   push:
     branches: ["master"]
-  pull_request:
-    branches: ["master"]
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
@@ -16,12 +16,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      # - name: Install Wine
-      #   run: |
-      #     sudo dpkg --add-architecture i386
-      #     sudo apt-get update
-      #     sudo apt-get install -y wine64 wine32
-
+      - name: Set output
+        id: vars
+        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
       # Clone the external repo
       - name: Clone PoEHelper repository
         run: git clone https://github.com/TehCheat/PoEHelper.git /tmp/PoEHelper
@@ -54,8 +51,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.run_id }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ steps.vars.outputs.tag }}
+          release_name: Release ${{ steps.vars.outputs.tag }}
           draft: false
           prerelease: false
       - name: Upload Build Artifacts
