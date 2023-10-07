@@ -54,6 +54,11 @@ public class Ninja
         }
     }
 
+    public static void SetDirty()
+    {
+        _dirty = true;
+    }
+
     private static readonly List<(string, DownloadType)> DownloadList = new List<(string, DownloadType)>
     {
         ("Currency", DownloadType.Currency),

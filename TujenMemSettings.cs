@@ -166,6 +166,7 @@ public class TujenMemSettings : ISettings
                         customPriceInput = "";
                         customPriceValue = 0f;
                         customPriceExpression = "";
+                        Ninja.SetDirty();
                     }
 
                     ImGui.BeginChild("##CustomPricesList", new System.Numerics.Vector2(0, 200), true);
@@ -187,6 +188,7 @@ public class TujenMemSettings : ISettings
                         {
                             CustomPrices.Remove(customPriceSelected);
                             customPriceSelected = ("", null, "");
+                            Ninja.SetDirty();
                         }
                     }
 
@@ -215,6 +217,7 @@ public class TujenMemSettings : ISettings
                         ItemMappings.Add((new List<string>(itemMappingInput.Split(',')), itemMappingValue));
                         itemMappingInput = "";
                         itemMappingValue = "";
+                        Ninja.SetDirty();
                     }
                     var t2 = String.Join(",", itemMappingSelected.Item1) + itemMappingSelected.Item2;
 
@@ -236,6 +239,7 @@ public class TujenMemSettings : ISettings
                         {
                             ItemMappings.Remove(itemMappingSelected);
                             itemMappingSelected = (new List<string>(), "");
+                            Ninja.SetDirty();
                         }
                     }
 
