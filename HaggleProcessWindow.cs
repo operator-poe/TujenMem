@@ -10,6 +10,7 @@ using System;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Threading;
 
 namespace TujenMem;
 
@@ -208,139 +209,162 @@ public class HaggleProcessWindow
     Log.Debug("Getting item prices");
     List<(HaggleItem, NinjaItem)> items = new();
 
-    foreach (NormalInventoryItem inventoryItem in TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems)
+    for (var i = 0; i < TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems.Count; i++)
     {
-      var item = Items.Find(x => x.Address == inventoryItem.Address);
+
+      var item = Items.Find(x => x.Address == TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Address);
       if (item == null || item.State != HaggleItemState.Unpriced || item.State == HaggleItemState.Priced || item.State == HaggleItemState.TooExpensive)
       {
         continue;
       }
 
-      var position = inventoryItem.GetClientRect().Center;
-      Input.SetCursorPos(position);
+      var attempts = 0;
+      while (true)
+      {
+        attempts++;
+        var position = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].GetClientRect().Center;
+        Input.SetCursorPos(position);
 
-      var tt = inventoryItem.Tooltip;
-      yield return new WaitFunctionTimed(() =>
-      {
-        var ttBody = tt?.GetChildFromIndices(0, 1);
-        return tt != null && ttBody != null && tt.GetChildFromIndices(0, 1, ttBody.Children.Count - 1, 1) != null;
-      }, false, 1000);
-      if (tt.Children.Count == 0 || tt.Children[0].Children.Count == 0)
-      {
-        Error.Add("Error while reading tooltip", $"Tooltip structure is unexpected. Item: {item.Name}");
-        Error.Add("Tooltip Structure", Error.VisualizeElementTree(tt));
-        Error.Show();
-        yield break;
-      }
-
-      var ttHead = tt.GetChildFromIndices(0, 0);
-      var ttBody = tt.GetChildFromIndices(0, 1);
-      if (ttHead == null || ttBody == null)
-      {
-        Error.Add("Error while reading tooltip", $"Tooltip has no head or body.\nItem: {item.Name}.\nPlease check your hover delay settings and try again.");
-        Error.Add("Tooltip Structure", Error.VisualizeElementTree(tt));
-        Error.Show();
-        yield break;
-      }
-      var ttPriceSection = ttBody.GetChildAtIndex(ttBody.Children.Count - 1);
-      if (ttPriceSection == null || ttPriceSection.Children.Count < 2)
-      {
-        Error.Add("Error while reading tooltip", $"Tooltip has no price section.\nItem: {item.Name}\nPlease check your hover delay settings and try again.");
-        Error.Add("Tooltip Structure", Error.VisualizeElementTree(tt));
-        Error.Show();
-        yield break;
-      }
-      var ttPriceHead = ttPriceSection.GetChildAtIndex(0);
-      var ttPriceBody = ttPriceSection.GetChildAtIndex(1);
-      if (ttPriceHead == null || ttPriceBody == null)
-      {
-        Error.Add("Error while reading tooltip", $"Tooltip has no price head or body.\nItem: {item.Name}\nPlease check your hover delay settings and try again.");
-        Error.Add("Tooltip Structure", Error.VisualizeElementTree(tt));
-        Error.Show();
-        yield break;
-      }
-
-      string priceString = ttPriceBody.GetChildAtIndex(0).Text;
-      string cleaned = new string(priceString.Where(char.IsDigit).ToArray()).Trim();
-      var ttPrice = 0;
-      try
-      {
-        ttPrice = int.Parse(cleaned);
-      }
-      catch (Exception e)
-      {
-        Error.Add("Error while reading tooltip", $"Error parsing price: {e.ToString()}\nText: {priceString}\nCleaned: {cleaned}");
-        Error.Add("Tooltip Structure", Error.VisualizeElementTree(tt));
-        Error.Show();
-        yield break;
-      }
-
-      var ttPriceType = ttPriceBody.GetChildAtIndex(2).Text;
-
-      item.Price = new HaggleCurrency(ttPriceType, ttPrice);
-      item.Value = 0;
-      NinjaItem ninjaItem = null;
-      if (Ninja.Items.ContainsKey(item.Name))
-      {
-        ninjaItem = Ninja.Items[item.Name].Find(x => x.ChaosValue > 0);
-        if (item is HaggleItemGem)
+        yield return new WaitFunctionTimed(() =>
         {
-          var gem = item as HaggleItemGem;
-          ninjaItem = Ninja.Items[item.Name].Find(x =>
-          {
-            if (x is NinjaItemGem)
-            {
-              var ninjaGem = x as NinjaItemGem;
-              return ninjaGem.ChaosValue > 10
-                && ninjaGem.Level == gem.Level
-                && gem.Corrupted == ninjaGem.Corrupted
-                && (gem.Level > 1 || ninjaGem.SpecialSupport)
-                && (ninjaGem.Quality == gem.Quality || ninjaGem.SpecialSupport);
-            }
-            return false;
-          }
-          );
-        }
-        else if (item is HaggleItemClusterJewel)
+          var ttBody = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip?.GetChildFromIndices(0, 1);
+          return TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip != null
+            && ttBody != null
+            && TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1, ttBody.Children.Count - 1, 1) != null;
+        }, false, 1000);
+        var ttBody = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1);
+        if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip == null
+          || ttBody == null
+          || TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1, ttBody.Children.Count - 1, 1) == null)
         {
-          var cluster = item as HaggleItemClusterJewel;
-          ninjaItem = Ninja.Items[item.Name].Find(x =>
-          {
-            if (x is NinjaItemClusterJewel)
-            {
-              var ninjaCluster = x as NinjaItemClusterJewel;
-              return ninjaCluster.ChaosValue > 10
-                && ninjaCluster.ItemLevel == cluster.ItemLevel
-                && ninjaCluster.PassiveSkills == cluster.PassiveSkills;
-            }
-            return false;
-          }
-          );
+          Error.Add("Error while reading tooltip", $"Tooltip structure is unexpected. Item: {item.Name}");
+          Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
+          Error.Show();
+          yield break;
         }
+
+        var ttHead = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 0);
+        if (ttHead == null || ttBody == null)
+        {
+          if (attempts < 3)
+          {
+            continue;
+          }
+          Error.Add("Error while reading tooltip", $"Tooltip has no head or body.\nItem: {item.Name}.\nPlease check your hover delay settings and try again.");
+          Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
+          Error.Show();
+          yield break;
+        }
+        var ttPriceSection = ttBody.GetChildAtIndex(ttBody.Children.Count - 1);
+        if (ttPriceSection == null || ttPriceSection.Children.Count < 2)
+        {
+          if (attempts < 3)
+          {
+            continue;
+          }
+          Error.Add("Error while reading tooltip", $"Tooltip has no price section.\nItem: {item.Name}\nPlease check your hover delay settings and try again.");
+          Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
+          Error.Show();
+          yield break;
+        }
+        var ttPriceHead = ttPriceSection.GetChildAtIndex(0);
+        var ttPriceBody = ttPriceSection.GetChildAtIndex(1);
+        if (ttPriceHead == null || ttPriceBody == null)
+        {
+          if (attempts < 3)
+          {
+            continue;
+          }
+          Error.Add("Error while reading tooltip", $"Tooltip has no price head or body.\nItem: {item.Name}\nPlease check your hover delay settings and try again.");
+          Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
+          Error.Show();
+          yield break;
+        }
+
+        string priceString = ttPriceBody.GetChildAtIndex(0).Text;
+        string cleaned = new string(priceString.Where(char.IsDigit).ToArray()).Trim();
+        var ttPrice = 0;
+        try
+        {
+          ttPrice = int.Parse(cleaned);
+        }
+        catch (Exception e)
+        {
+          Error.Add("Error while reading tooltip", $"Error parsing price: {e.ToString()}\nText: {priceString}\nCleaned: {cleaned}");
+          Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
+          Error.Show();
+          yield break;
+        }
+
+        var ttPriceType = ttPriceBody.GetChildAtIndex(2).Text;
+
+        item.Price = new HaggleCurrency(ttPriceType, ttPrice);
+        item.Value = 0;
+        NinjaItem ninjaItem = null;
+        if (Ninja.Items.ContainsKey(item.Name))
+        {
+          ninjaItem = Ninja.Items[item.Name].Find(x => x.ChaosValue > 0);
+          if (item is HaggleItemGem)
+          {
+            var gem = item as HaggleItemGem;
+            ninjaItem = Ninja.Items[item.Name].Find(x =>
+            {
+              if (x is NinjaItemGem)
+              {
+                var ninjaGem = x as NinjaItemGem;
+                return ninjaGem.ChaosValue > 10
+                  && ninjaGem.Level == gem.Level
+                  && gem.Corrupted == ninjaGem.Corrupted
+                  && (gem.Level > 1 || ninjaGem.SpecialSupport)
+                  && (ninjaGem.Quality == gem.Quality || ninjaGem.SpecialSupport);
+              }
+              return false;
+            }
+            );
+          }
+          else if (item is HaggleItemClusterJewel)
+          {
+            var cluster = item as HaggleItemClusterJewel;
+            ninjaItem = Ninja.Items[item.Name].Find(x =>
+            {
+              if (x is NinjaItemClusterJewel)
+              {
+                var ninjaCluster = x as NinjaItemClusterJewel;
+                return ninjaCluster.ChaosValue > 10
+                  && ninjaCluster.ItemLevel == cluster.ItemLevel
+                  && ninjaCluster.PassiveSkills == cluster.PassiveSkills;
+              }
+              return false;
+            }
+            );
+          }
+          if (ninjaItem != null)
+          {
+            item.Value = ninjaItem.ChaosValue * item.Amount;
+          }
+        }
+        else
+        {
+          Error.AddAndShow("Error while pricing item", $"There was no equivalent Ninja entry for {item.Name}.\nPlease check your item mappings and your Ninja settings.");
+          yield break;
+        }
+
+        var itemPrice = item?.Price?.TotalValue() ?? 0;
+        if (itemPrice * TujenMem.Instance.Settings.ArtifactValueSettings.ItemPriceMultiplier.Value >= item.Value)
+        {
+          item.State = HaggleItemState.TooExpensive;
+        }
+        else
+        {
+          item.State = HaggleItemState.Priced;
+        }
+
+
         if (ninjaItem != null)
-        {
-          item.Value = ninjaItem.ChaosValue * item.Amount;
-        }
-      }
-      else
-      {
-        Error.AddAndShow("Error while pricing item", $"There was no equivalent Ninja entry for {item.Name}.\nPlease check your item mappings and your Ninja settings.");
-        yield break;
-      }
+          items.Add((item, ninjaItem));
 
-      var itemPrice = item?.Price?.TotalValue() ?? 0;
-      if (itemPrice * TujenMem.Instance.Settings.ArtifactValueSettings.ItemPriceMultiplier.Value >= item.Value)
-      {
-        item.State = HaggleItemState.TooExpensive;
+        break;
       }
-      else
-      {
-        item.State = HaggleItemState.Priced;
-      }
-
-
-      if (ninjaItem != null)
-        items.Add((item, ninjaItem));
     }
     Log.Debug($"Finished getting item prices. {items.Count} items priced.");
     if (TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableStatistics)
