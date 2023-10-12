@@ -389,10 +389,17 @@ public class HaggleMultiplierSettings
     public RangeNode<float> Try1 { get; set; } = new RangeNode<float>(0.72f, 0.0f, 1.0f);
 
     [Menu("Try 2", "Multiplier for second haggle attempt")]
-    public RangeNode<float> Try2 { get; set; } = new RangeNode<float>(0.89f, 0.0f, 1.0f);
+    public RangeNode<float> Try2 { get; set; } = new RangeNode<float>(0.5f, 0.0f, 1.0f);
 
     [Menu("Try 3", "Multiplier for third haggle attempt")]
-    public RangeNode<float> Try3 { get; set; } = new RangeNode<float>(0.95f, 0.0f, 1.0f);
+    public RangeNode<float> Try3 { get; set; } = new RangeNode<float>(0.7f, 0.0f, 1.0f);
+
+    [Menu("Multiplier Mode", "Wether the multiplier applies as percentage of 0 to max or current tries min to max")]
+    public ListNode MultiplierMode { get; set; } = new ListNode
+    {
+        Values = new List<string> { "Zero To Max", "Min to Max" },
+        Value = "Min To Max"
+    };
 }
 
 [Submenu(CollapsedByDefault = true)]

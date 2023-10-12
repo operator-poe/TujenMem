@@ -406,7 +406,8 @@ public class HaggleProcessWindow
         var currentOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentOffer;
 
         var multiplier = attempts == 1 ? TujenMem.Instance.Settings.HaggleMultiplierSettings.Try1 : attempts == 2 ? TujenMem.Instance.Settings.HaggleMultiplierSettings.Try2 : TujenMem.Instance.Settings.HaggleMultiplierSettings.Try3;
-        while (currentOffer > maxOffer * multiplier && currentOffer > minOffer)
+        int targetOffer = TujenMem.Instance.Settings.HaggleMultiplierSettings.MultiplierMode == "Min To Max" ? (int)(minOffer + Math.Ceiling((maxOffer - minOffer) * multiplier)) : (int)(maxOffer * multiplier);
+        while (currentOffer > targetOffer && currentOffer > minOffer)
         {
           if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: false } || attempts > 3)
           {
