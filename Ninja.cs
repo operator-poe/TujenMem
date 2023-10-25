@@ -223,9 +223,7 @@ public class Ninja
         }
         else
         {
-            {
-                ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), "Invalid");
-            }
+            ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), "Invalid");
         }
     }
 

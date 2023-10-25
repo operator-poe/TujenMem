@@ -269,13 +269,21 @@ public class TujenMemSettings : ISettings
             ItemMappings.Add((new List<string>() { "HeistBlueprint", "Prohibited Library" }, "Replicas Blueprint"));
             ItemMappings.Add((new List<string>() { "HeistBlueprint", "Tunnels" }, "Unusual Blueprint"));
             ItemMappings.Add((new List<string>() { "HeistContract", "Deception" }, "Good Contract"));
+            ItemMappings.Add((new List<string>() { "HeistContract", "Perception" }, "Bad Contract"));
+            ItemMappings.Add((new List<string>() { "HeistContract", "Agility" }, "Bad Contract"));
+            ItemMappings.Add((new List<string>() { "HeistContract", "Lockpicking" }, "Bad Contract"));
+            ItemMappings.Add((new List<string>() { "HeistContract", "Demolition" }, "Bad Contract"));
+            ItemMappings.Add((new List<string>() { "HeistContract", "Engineering" }, "Bad Contract"));
+            ItemMappings.Add((new List<string>() { "HeistContract", "Trap Disarmament" }, "Bad Contract"));
+            ItemMappings.Add((new List<string>() { "HeistContract", "Brute Force" }, "Bad Contract"));
+            ItemMappings.Add((new List<string>() { "HeistContract", "Counter-Thaumaturgy" }, "Bad Contract"));
         }
 
         if (CustomPrices.Count == 0)
         {
             CustomPrices.Add(("Chaos Orb", 1, ""));
             CustomPrices.Add(("Good Contract", 10, ""));
-            CustomPrices.Add(("Ok Contract", 2, ""));
+            CustomPrices.Add(("Bad Contract", 1, ""));
             CustomPrices.Add(("Enchanted Blueprint", 3, ""));
             CustomPrices.Add(("Trinkets Blueprint", 2, ""));
             CustomPrices.Add(("Replicas Blueprint", 15, ""));
