@@ -1,8 +1,5 @@
 using System.Collections;
-using System.Diagnostics;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using ExileCore;
 using ExileCore.Shared;
 using ExileCore.Shared.Enums;
 

@@ -20,7 +20,7 @@ public class HaggleStock
       }
       catch (Exception e)
       {
-        Error.Add("Error while reading artifacts", $"Error parsing Lesser: {e.ToString()}\nText: {text}\nCleaned: {cleaned}");
+        Error.Add("Error while reading artifacts", $"Error parsing Lesser: {e}\nText: {text}\nCleaned: {cleaned}");
         Error.Add("Relevant Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo.GetChildAtIndex(5)));
         Error.Show();
       }
@@ -41,7 +41,7 @@ public class HaggleStock
       }
       catch (Exception e)
       {
-        Error.Add("Error while reading artifacts", $"Error parsing Greater: {e.ToString()}\nText: {text}\nCleaned: {cleaned}");
+        Error.Add("Error while reading artifacts", $"Error parsing Greater: {e}\nText: {text}\nCleaned: {cleaned}");
         Error.Add("Relevant Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo.GetChildAtIndex(9)));
         Error.Show();
       }
@@ -62,7 +62,7 @@ public class HaggleStock
       }
       catch (Exception e)
       {
-        Error.Add("Error while reading artifacts", $"Error parsing Grand: {e.ToString()}\nText: {text}\nCleaned: {cleaned}");
+        Error.Add("Error while reading artifacts", $"Error parsing Grand: {e}\nText: {text}\nCleaned: {cleaned}");
         Error.Add("Relevant Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo.GetChildAtIndex(13)));
         Error.Show();
       }
@@ -83,7 +83,7 @@ public class HaggleStock
       }
       catch (Exception e)
       {
-        Error.Add("Error while reading artifacts", $"Error parsing Exceptional: {e.ToString()}\nText: {text}\nCleaned: {cleaned}");
+        Error.Add("Error while reading artifacts", $"Error parsing Exceptional: {e}\nText: {text}\nCleaned: {cleaned}");
         Error.Add("Relevant Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo.GetChildAtIndex(17)));
         Error.Show();
       }
@@ -104,7 +104,7 @@ public class HaggleStock
       }
       catch (Exception e)
       {
-        Error.Add("Error while reading artifacts", $"Error parsing Coins: {e.ToString()}\nText: {text}\nCleaned: {cleaned}");
+        Error.Add("Error while reading artifacts", $"Error parsing Coins: {e}\nText: {text}\nCleaned: {cleaned}");
         Error.Add("Relevant Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.CurrencyInfo.GetChildAtIndex(1)));
         Error.Show();
       }

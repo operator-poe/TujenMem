@@ -1,14 +1,11 @@
 using System;
 using System.Collections;
 using System.Linq;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using ExileCore;
-using ExileCore.PoEMemory.Elements;
-using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared;
 using ImGuiNET;
 using TujenMem.PrepareLogbook;

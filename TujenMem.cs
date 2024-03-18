@@ -2,10 +2,8 @@
 using ExileCore;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared;
-using System.Collections.Generic;
 using System.Collections;
 using System.Windows.Forms;
-using System;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Data;

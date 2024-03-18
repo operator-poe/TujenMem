@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows.Forms;
 using ExileCore.Shared.Attributes;
 using ExileCore.Shared.Interfaces;
@@ -77,7 +76,7 @@ public class TujenMemSettings : ISettings
                         whiteListInput = "";
                     }
 
-                    ImGui.BeginChild("##WhitelistList", new System.Numerics.Vector2(0, 200), true);
+                    ImGui.BeginChild("##WhitelistList", new System.Numerics.Vector2(0, 200), ImGuiChildFlags.Border);
                     foreach (var s in Whitelist)
                     {
                         if (ImGui.Selectable(s, s == whiteListSelected))
@@ -116,7 +115,7 @@ public class TujenMemSettings : ISettings
                         blackListInput = "";
                     }
 
-                    ImGui.BeginChild("##BlackListList", new System.Numerics.Vector2(0, 200), true);
+                    ImGui.BeginChild("##BlackListList", new System.Numerics.Vector2(0, 200), ImGuiChildFlags.Border);
                     foreach (var s in Blacklist)
                     {
                         if (ImGui.Selectable(s, s == blackListSelected))
@@ -169,7 +168,7 @@ public class TujenMemSettings : ISettings
                         Ninja.SetDirty();
                     }
 
-                    ImGui.BeginChild("##CustomPricesList", new System.Numerics.Vector2(0, 200), true);
+                    ImGui.BeginChild("##CustomPricesList", new System.Numerics.Vector2(0, 200), ImGuiChildFlags.Border);
                     foreach (var s in CustomPrices)
                     {
                         var t = s.Item2 != null ? s.Item2.ToString() : s.Item3;
@@ -219,13 +218,13 @@ public class TujenMemSettings : ISettings
                         itemMappingValue = "";
                         Ninja.SetDirty();
                     }
-                    var t2 = String.Join(",", itemMappingSelected.Item1) + itemMappingSelected.Item2;
+                    var t2 = string.Join(",", itemMappingSelected.Item1) + itemMappingSelected.Item2;
 
-                    ImGui.BeginChild("##ItemMappingsList", new System.Numerics.Vector2(0, 200), true);
+                    ImGui.BeginChild("##ItemMappingsList", new System.Numerics.Vector2(0, 200), ImGuiChildFlags.Border);
                     foreach (var s in ItemMappings)
                     {
-                        var t1 = String.Join(",", s.Item1) + s.Item2;
-                        if (ImGui.Selectable($"{String.Join(",", s.Item1)} - {s.Item2}", t1 == t2))
+                        var t1 = string.Join(",", s.Item1) + s.Item2;
+                        if (ImGui.Selectable($"{string.Join(",", s.Item1)} - {s.Item2}", t1 == t2))
                         {
                             itemMappingSelected = s;
                         }
@@ -233,7 +232,7 @@ public class TujenMemSettings : ISettings
                     ImGui.EndChild();
                     if (t2 != "")
                     {
-                        ImGui.Text($"Selected: {String.Join(",", itemMappingSelected.Item1)} - {itemMappingSelected.Item2}");
+                        ImGui.Text($"Selected: {string.Join(",", itemMappingSelected.Item1)} - {itemMappingSelected.Item2}");
                         ImGui.SameLine();
                         if (ImGui.Button("Remove"))
                         {

@@ -1,5 +1,3 @@
-using ExileCore;
-using ExileCore.PoEMemory.Elements.InventoryElements;
 using SharpDX;
 
 namespace TujenMem;

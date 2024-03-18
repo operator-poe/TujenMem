@@ -1,7 +1,6 @@
 using System;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -218,13 +217,9 @@ public class Ninja
         ImGui.Text("Validity: ");
         ImGui.SameLine();
         if (IsValid)
-        {
             ImGui.TextColored(new System.Numerics.Vector4(0, 1, 0, 1), "Valid");
-        }
         else
-        {
             ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), "Invalid");
-        }
     }
 
     public static async Task Parse()

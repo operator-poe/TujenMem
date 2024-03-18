@@ -2,15 +2,11 @@ using System.Collections.Generic;
 using ExileCore;
 using ExileCore.PoEMemory.Elements.InventoryElements;
 using ExileCore.Shared;
-using ExileCore.PoEMemory.MemoryObjects;
-using ExileCore.PoEMemory.Elements.ExpeditionElements;
 using System.Collections;
-using System.Security.Cryptography.X509Certificates;
 using System;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.Linq;
-using System.Threading;
 
 namespace TujenMem;
 
@@ -290,7 +286,7 @@ public class HaggleProcessWindow
         }
         catch (Exception e)
         {
-          Error.Add("Error while reading tooltip", $"Error parsing price: {e.ToString()}\nText: {priceString}\nCleaned: {cleaned}");
+          Error.Add("Error while reading tooltip", $"Error parsing price: {e}\nText: {priceString}\nCleaned: {cleaned}");
           Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
           Error.Show();
           yield break;

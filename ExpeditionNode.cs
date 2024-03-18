@@ -1,6 +1,5 @@
 using SharpDX;
 using ExileCore.PoEMemory;
-using ExileCore.PoEMemory.Components;
 
 namespace TujenMem;
 

@@ -1,5 +1,3 @@
-using ExileCore;
-
 namespace TujenMem;
 
 public class HaggleCurrency

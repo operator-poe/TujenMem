@@ -46,12 +46,12 @@ public class Statistics
     {
       using (StreamWriter sw = new StreamWriter(DataFileName, true))
       {
-        sw.WriteLine($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")};{windowId};{ninjaItem.Name};{haggleItem.Type};{ninjaItem.ChaosValue.ToString(CultureInfo.InvariantCulture)};{haggleItem.Price.Value.ToString(CultureInfo.InvariantCulture)};{haggleItem.Price.Name};{haggleItem.Amount};{haggleItem.Value.ToString(CultureInfo.InvariantCulture)};{haggleItem.State};{(haggleItem as HaggleItemGem)?.Level};{(haggleItem as HaggleItemGem)?.Quality};{(haggleItem as HaggleItemMap)?.MapTier};{(haggleItem as HaggleItemMap)?.IsInfluenced};{(haggleItem as HaggleItemMap)?.IsUnique}");
+        sw.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss};{windowId};{ninjaItem.Name};{haggleItem.Type};{ninjaItem.ChaosValue.ToString(CultureInfo.InvariantCulture)};{haggleItem.Price.Value.ToString(CultureInfo.InvariantCulture)};{haggleItem.Price.Name};{haggleItem.Amount};{haggleItem.Value.ToString(CultureInfo.InvariantCulture)};{haggleItem.State};{(haggleItem as HaggleItemGem)?.Level};{(haggleItem as HaggleItemGem)?.Quality};{(haggleItem as HaggleItemMap)?.MapTier};{(haggleItem as HaggleItemMap)?.IsInfluenced};{(haggleItem as HaggleItemMap)?.IsUnique}");
       }
     }
     catch (Exception e)
     {
-      DebugWindow.LogError($"Error writing to file: {e.ToString()}");
+      DebugWindow.LogError($"Error writing to file: {e}");
     }
   }
 }
