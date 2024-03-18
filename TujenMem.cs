@@ -18,6 +18,7 @@ namespace TujenMem;
 public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 {
     internal static TujenMem Instance;
+    public Scheduler Scheduler = new();
 
     public HaggleState HaggleState = HaggleState.Idle;
 
@@ -63,7 +64,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             {
                 Log.Debug("Starting Haggle Coroutine");
                 HaggleState = HaggleState.StartUp;
-                Core.ParallelRunner.Run(new Coroutine(HaggleCoroutine(), this, _coroutineName));
+                Scheduler.AddTask(HaggleCoroutine(), _coroutineName);
             }
             else
             {
@@ -77,13 +78,12 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             if (Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless) == null)
             {
                 Log.Debug("Starting Roll and Bless Coroutine");
-                Core.ParallelRunner.Run(new Coroutine(PrepareLogbook.Runner.RollAndBlessLogbooksCoroutine(), this, PrepareLogbook.Runner.CoroutineNameRollAndBless));
+                Scheduler.AddTask(PrepareLogbook.Runner.RollAndBlessLogbooksCoroutine(), PrepareLogbook.Runner.CoroutineNameRollAndBless);
             }
             else
             {
                 Log.Debug("Stopping Roll and Bless Coroutine");
-                var routine = Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless);
-                routine?.Done();
+                HaggleState = HaggleState.Cancelling;
             }
         }
         if (HaggleState is HaggleState.Cancelling)
@@ -127,11 +127,11 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         return false;
     }
 
-    public IEnumerator EmptyInventoryCoRoutine()
+    public async SyncTask<bool> EmptyInventoryCoRoutine()
     {
         Log.Debug("Emptying Inventory");
-        yield return ExitAllWindows();
-        yield return FindAndClickStash();
+        await ExitAllWindows();
+        await FindAndClickStash();
 
         var inventory = GameController.IngameState.Data.ServerData.PlayerInventories[0].Inventory;
         var inventoryItems = inventory.InventorySlotItems;
@@ -140,28 +140,30 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 
         Log.Debug($"Found {inventoryItems.Count} items in inventory");
 
-        Input.KeyDown(Keys.ControlKey);
+        await InputAsync.KeyDown(Keys.ControlKey);
         foreach (var item in inventoryItems)
         {
             if (item is null || item.PosX >= 11)
             {
                 continue;
             }
-            Input.SetCursorPos(item.GetClientRect().Center);
-            yield return new WaitTime(Settings.HoverItemDelay);
-            Input.Click(MouseButtons.Left);
-            yield return new WaitTime(Settings.HoverItemDelay * 3);
+            await InputAsync.MoveMouseToElement(item.GetClientRect().Center);
+            await InputAsync.Wait();
+            await InputAsync.Click(MouseButtons.Left);
+            await InputAsync.Wait();
         }
-        Input.KeyUp(Keys.ControlKey);
+        await InputAsync.KeyUp(Keys.ControlKey);
 
         Log.Debug("Inventory emptied");
 
-        yield return FindAndClickTujen();
-
-        yield return new WaitTime(Settings.HoverItemDelay * 3);
+        await FindAndClickTujen();
+        await InputAsync.Wait();
+        await InputAsync.Wait();
+        await InputAsync.Wait();
+        return true;
     }
 
-    private IEnumerator FindAndClickTujen()
+    private async SyncTask<bool> FindAndClickTujen()
     {
         Log.Debug("Finding and clicking Tujen");
         var itemsOnGround = GameController.IngameState.IngameUi.ItemsOnGroundLabels;
@@ -172,12 +174,14 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             var haggleWindowSub = GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow;
             if (haggleWindowSub is { IsVisible: true })
             {
-                yield return Input.KeyPress(Keys.Escape);
-                yield return new WaitTime(Settings.HoverItemDelay * 3);
+                await InputAsync.KeyPress(Keys.Escape);
+                await InputAsync.Wait();
+                await InputAsync.Wait();
+                await InputAsync.Wait();
             }
-            yield break;
+            return true;
         }
-        yield return ExitAllWindows();
+        await ExitAllWindows();
 
         foreach (LabelOnGround labelOnGround in itemsOnGround)
         {
@@ -188,26 +192,26 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             if (!labelOnGround.IsVisible)
             {
                 Error.AddAndShow("Error", "Tujen not visible.\nMake sure that he is positioned within short reach.");
-                yield break;
+                return false;
             }
-            Input.SetCursorPos(labelOnGround.Label.GetClientRect().Center);
-            yield return new WaitTime(Settings.HoverItemDelay);
-            Input.KeyDown(Keys.ControlKey);
-            yield return new WaitTime(Settings.HoverItemDelay);
-            Input.Click(MouseButtons.Left);
-            Input.KeyUp(Keys.ControlKey);
-            yield return new WaitFunctionTimed(() => haggleWindow is { IsVisible: true }, false, 1000);
+            await InputAsync.MoveMouseToElement(labelOnGround.Label.GetClientRect().Center);
+            await InputAsync.Wait();
+            await InputAsync.KeyDown(Keys.ControlKey);
+            await InputAsync.Wait();
+            await InputAsync.Click(MouseButtons.Left);
+            await InputAsync.KeyUp(Keys.ControlKey);
+            await InputAsync.Wait(() => haggleWindow is { IsVisible: true }, 1000);
             if (haggleWindow is { IsVisible: false })
             {
                 Error.AddAndShow("Error", "Could not reach Tujen in time.\nMake sure that he is positioned within short reach.");
-                yield break;
+                return false;
             }
         }
         Log.Debug("Found and clicked Tujen");
-        yield return true;
+        return true;
     }
 
-    private IEnumerator FindAndClickStash()
+    private async SyncTask<bool> FindAndClickStash()
     {
         Log.Debug("Finding and clicking Stash");
         var itemsOnGround = GameController.IngameState.IngameUi.ItemsOnGroundLabels;
@@ -216,7 +220,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         if (stash is { IsVisible: true })
         {
             Log.Debug("Stash already open");
-            yield break;
+            return true;
         }
 
         foreach (LabelOnGround labelOnGround in itemsOnGround)
@@ -228,64 +232,76 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             if (!labelOnGround.IsVisible)
             {
                 LogError("Stash not visible");
-                yield break;
+                return false;
             }
-            Input.SetCursorPos(labelOnGround.Label.GetClientRect().Center);
-            yield return new WaitTime(Settings.HoverItemDelay);
-            Input.Click(MouseButtons.Left);
-            yield return new WaitFunctionTimed(() => stash is { IsVisible: true }, false, 1000);
+            await InputAsync.MoveMouseToElement(labelOnGround.Label.GetClientRect().Center);
+            await InputAsync.Wait();
+            await InputAsync.Click(MouseButtons.Left);
+            await InputAsync.Wait(() => stash is { IsVisible: true }, 1000);
             if (stash is { IsVisible: false })
             {
                 Error.AddAndShow("Error", "Could not reach Stash in time.\nMake sure that it is positioned within short reach.");
-                yield break;
+                return false;
             }
         }
         Log.Debug("Found and clicked Stash");
-        yield return true;
+        return true;
     }
 
-    private IEnumerator ExitAllWindows()
+    private async SyncTask<bool> ExitAllWindows()
     {
         Log.Debug("Exiting all windows");
         var haggleWindowSub = GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow;
         if (haggleWindowSub is { IsVisible: true })
         {
-            yield return Input.KeyPress(Keys.Escape);
-            yield return new WaitTime(Settings.HoverItemDelay * 3);
+            await InputAsync.KeyPress(Keys.Escape);
+            await InputAsync.Wait();
+            await InputAsync.Wait();
+            await InputAsync.Wait();
             Log.Debug("Exited Haggle Sub window");
         }
 
         var haggleWindow = GameController.IngameState.IngameUi.HaggleWindow;
         if (haggleWindow is { IsVisible: true })
         {
-            yield return Input.KeyPress(Keys.Escape);
-            yield return new WaitTime(Settings.HoverItemDelay * 3);
+            await InputAsync.KeyPress(Keys.Escape);
+            await InputAsync.Wait();
+            await InputAsync.Wait();
+            await InputAsync.Wait();
             Log.Debug("Exited Haggle window");
         }
 
         var tujenDialog = GameController.IngameState.IngameUi.ExpeditionNpcDialog;
         if (tujenDialog is { IsVisible: true })
         {
-            yield return Input.KeyPress(Keys.Escape);
-            yield return new WaitTime(Settings.HoverItemDelay * 3);
+            await InputAsync.KeyPress(Keys.Escape);
+            await InputAsync.Wait();
+            await InputAsync.Wait();
+            await InputAsync.Wait();
             Log.Debug("Exited Tujen dialog");
         }
 
         var stashWindow = GameController.IngameState.IngameUi.StashElement;
         if (stashWindow is { IsVisible: true })
         {
-            yield return Input.KeyPress(Keys.Escape);
-            yield return new WaitTime(Settings.HoverItemDelay * 3);
+            await InputAsync.KeyPress(Keys.Escape);
+            await InputAsync.Wait();
+            await InputAsync.Wait();
+            await InputAsync.Wait();
             Log.Debug("Exited Stash window");
         }
 
         var inventory = GameController.IngameState.IngameUi.InventoryPanel;
         if (inventory is { IsVisible: true })
         {
-            yield return Input.KeyPress(Keys.Escape);
-            yield return new WaitTime(Settings.HoverItemDelay * 3);
+            await InputAsync.KeyPress(Keys.Escape);
+            await InputAsync.Wait();
+            await InputAsync.Wait();
+            await InputAsync.Wait();
             Log.Debug("Exited Inventory window");
         }
+
+        return true;
     }
 
     private bool StartUpChecks()
@@ -322,22 +338,23 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     }
 
     private HaggleProcess _process = null;
-    private IEnumerator HaggleCoroutine()
+    private async SyncTask<bool> HaggleCoroutine()
     {
         HaggleState = HaggleState.Running;
         Log.Debug("Starting Haggle process");
-        yield return FindAndClickTujen();
+        await FindAndClickTujen();
         var mainWindow = GameController.IngameState.IngameUi.HaggleWindow;
 
         if (mainWindow is { IsVisible: false })
         {
             Log.Error("Haggle window not open!");
-            yield break;
+            return false;
         }
 
         if (StartUpChecks())
         {
-            yield break;
+            Log.Error("Startup checks failed!");
+            return false;
         }
 
         Log.Debug("Initiaizing Haggle process");
@@ -345,72 +362,67 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         while (_process.CanRun() || Settings.DebugOnly)
         {
             _process.InitializeWindow();
-            yield return _process.Run();
+            await _process.Run();
             if (Settings.DebugOnly)
             {
                 break;
             }
-            yield return new WaitTime(Settings.HoverItemDelay * 3);
+            await InputAsync.WaitX(3);
             if (ShouldEmptyInventory())
             {
-                yield return EmptyInventoryCoRoutine();
+                await EmptyInventoryCoRoutine();
             }
-            yield return new WaitTime(Settings.HoverItemDelay * 3);
+            await InputAsync.WaitX(3);
             if (HaggleStock.Coins > 0)
             {
                 var oldCount = HaggleStock.Coins;
 
-                yield return ReRollWindow();
+                await ReRollWindow();
 
-                yield return new WaitFunctionTimed(() => oldCount > HaggleStock.Coins, false, 500);
+                await InputAsync.Wait(() => oldCount > HaggleStock.Coins, 500);
                 if (oldCount == HaggleStock.Coins)
                 {
                     Error.AddAndShow("Error", "Window did not reroll after attempting a click.\nCheck your hover delay and make sure that the window is not obstructed.");
-                    yield break;
+                    return false;
                 }
             }
-            yield return new WaitTime(Settings.HoverItemDelay * 3);
+            await InputAsync.WaitX(3);
         }
 
 
         if (!Settings.DebugOnly && Settings.EmptyInventoryAfterHaggling)
         {
-            yield return EmptyInventoryCoRoutine();
+            await EmptyInventoryCoRoutine();
         }
 
         StopAllRoutines();
+
+        return true;
     }
 
-    private IEnumerator ReRollWindow()
+    private async SyncTask<bool> ReRollWindow()
     {
         Log.Debug("ReRolling window");
         if (GameController.IngameState.IngameUi.HaggleWindow is { IsVisible: false })
         {
             Error.AddAndShow("Error while ReRolling", "Haggle window not open!");
-            yield break;
+            return false;
         }
-        Input.SetCursorPos(GameController.IngameState.IngameUi.HaggleWindow.RefreshItemsButton.GetClientRect().Center);
-        yield return new WaitTime(Settings.HoverItemDelay);
-        Input.Click(MouseButtons.Left);
-        yield return new WaitTime(Settings.HoverItemDelay * 3);
+        await InputAsync.MoveMouseToElement(GameController.IngameState.IngameUi.HaggleWindow.RefreshItemsButton.GetClientRect().Center);
+        await InputAsync.Wait();
+        await InputAsync.Click(MouseButtons.Left);
+        await InputAsync.WaitX(3);
         Log.Debug("ReRolled window");
+        return true;
     }
 
     public void StopAllRoutines()
     {
         Log.Debug("Stopping all routines");
-        var routine = Core.ParallelRunner.FindByName(_coroutineName);
-        routine?.Done();
-        routine = Core.ParallelRunner.FindByName(_empty_inventory_coroutine_name);
-        routine?.Done();
-        routine = Core.ParallelRunner.FindByName(_reroll_coroutine_name);
-        routine?.Done();
-        routine = Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless);
-        routine?.Done();
-        routine = Core.ParallelRunner.FindByName(BuyAssistance.BuyAssistance._sendPmCoroutineName);
-        routine?.Done();
-        routine = Core.ParallelRunner.FindByName(BuyAssistance.BuyAssistance._extractMoneyFromStashCoroutineName);
-        routine?.Done();
+        Scheduler.Stop();
+        Scheduler.Clear();
+        InputAsync.LOCK_CONTROLLER = false;
+        InputAsync.IControllerEnd();
         HaggleState = HaggleState.Idle;
         Input.KeyUp(Keys.ControlKey);
     }
@@ -430,6 +442,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 
     public override void Render()
     {
+        Scheduler.Run();
         Error.Render();
 
         if (Settings.ShowDebugWindow && (HaggleState is HaggleState.Running || Settings.DebugOnly))
@@ -516,7 +529,9 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 });
 
                 var chosenNode = expeditionNodes.First();
+#pragma warning disable CS0612 // Type or member is obsolete
                 Graphics.DrawFrame(chosenNode.Position.TopLeft, chosenNode.Position.BottomRight, Color.Orange, 3);
+#pragma warning restore CS0612 // Type or member is obsolete
             }
         }
 
@@ -535,7 +550,9 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             {
                 var rect = GameController.IngameState.IngameUi.HaggleWindow.GetChildAtIndex(3).GetClientRect();
                 var textPos = new Vector2(rect.X, rect.Y - 20);
+#pragma warning disable CS0612 // Type or member is obsolete
                 Graphics.DrawText("WARNING: Some artifacts are disabled", textPos, Color.Red, 20);
+#pragma warning restore CS0612 // Type or member is obsolete
             }
         }
 
@@ -578,7 +595,9 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             for (int i = 0; i < drawNum; i++)
             {
                 var y = screenHeight / drawNum * i;
+#pragma warning disable CS0612 // Type or member is obsolete
                 Graphics.DrawText(txt, new Vector2(screenWidth / 2 - textSize.X / 2, y), _areaHasChangedVoranaColor, 20);
+#pragma warning restore CS0612 // Type or member is obsolete
             }
 
             if (_areaHasVoranaJumps > 100)

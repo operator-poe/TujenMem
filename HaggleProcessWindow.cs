@@ -7,6 +7,8 @@ using System;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.Linq;
+using ExileCore.Shared.Helpers;
+using System.Diagnostics;
 
 namespace TujenMem;
 
@@ -200,7 +202,7 @@ public class HaggleProcessWindow
     }
   }
 
-  public IEnumerator GetItemPrices()
+  public async SyncTask<bool> GetItemPrices()
   {
     Log.Debug("Getting item prices");
     List<(HaggleItem, NinjaItem)> items = new();
@@ -218,16 +220,17 @@ public class HaggleProcessWindow
       while (true)
       {
         attempts++;
-        var position = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].GetClientRect().Center;
+        var position = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].GetClientRect().Center.ToVector2Num();
+        // TODO: Should be fine to do it this fast on just hover
         Input.SetCursorPos(position);
 
-        yield return new WaitFunctionTimed(() =>
+        await InputAsync.Wait(() =>
         {
           var ttBody = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip?.GetChildFromIndices(0, 1);
           return TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip != null
             && ttBody != null
             && TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1, ttBody.Children.Count - 1, 1) != null;
-        }, false, 1000);
+        }, 1000);
         var ttBody = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1);
         if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip == null
           || ttBody == null
@@ -236,7 +239,7 @@ public class HaggleProcessWindow
           Error.Add("Error while reading tooltip", $"Tooltip structure is unexpected. Item: {item.Name}");
           Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
           Error.Show();
-          yield break;
+          return false;
         }
 
         var ttHead = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 0);
@@ -249,7 +252,7 @@ public class HaggleProcessWindow
           Error.Add("Error while reading tooltip", $"Tooltip has no head or body.\nItem: {item.Name}.\nPlease check your hover delay settings and try again.");
           Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
           Error.Show();
-          yield break;
+          return false;
         }
         var ttPriceSection = ttBody.GetChildAtIndex(ttBody.Children.Count - 1);
         if (ttPriceSection == null || ttPriceSection.Children.Count < 2)
@@ -261,7 +264,7 @@ public class HaggleProcessWindow
           Error.Add("Error while reading tooltip", $"Tooltip has no price section.\nItem: {item.Name}\nPlease check your hover delay settings and try again.");
           Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
           Error.Show();
-          yield break;
+          return false;
         }
         var ttPriceHead = ttPriceSection.GetChildAtIndex(0);
         var ttPriceBody = ttPriceSection.GetChildAtIndex(1);
@@ -274,7 +277,7 @@ public class HaggleProcessWindow
           Error.Add("Error while reading tooltip", $"Tooltip has no price head or body.\nItem: {item.Name}\nPlease check your hover delay settings and try again.");
           Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
           Error.Show();
-          yield break;
+          return false;
         }
 
         string priceString = ttPriceBody.GetChildAtIndex(0).Text;
@@ -289,7 +292,7 @@ public class HaggleProcessWindow
           Error.Add("Error while reading tooltip", $"Error parsing price: {e}\nText: {priceString}\nCleaned: {cleaned}");
           Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
           Error.Show();
-          yield break;
+          return false;
         }
 
         var ttPriceType = ttPriceBody.GetChildAtIndex(2).Text;
@@ -342,7 +345,7 @@ public class HaggleProcessWindow
         else
         {
           Error.AddAndShow("Error while pricing item", $"There was no equivalent Ninja entry for {item.Name}.\nPlease check your item mappings and your Ninja settings.");
-          yield break;
+          return false;
         }
 
         var itemPrice = item?.Price?.TotalValue() ?? 0;
@@ -368,9 +371,11 @@ public class HaggleProcessWindow
       foreach (var (item, ninjaItem) in items)
         Statistics.RecordItem(StatisticsWindowId, ninjaItem, item);
     }
+
+    return true;
   }
 
-  public IEnumerator HaggleForItems()
+  public async SyncTask<bool> HaggleForItems()
   {
     Log.Debug("Haggling for items");
     foreach (HaggleItem item in Items)
@@ -381,47 +386,56 @@ public class HaggleProcessWindow
       }
 
       var position = item.Position;
-      Input.SetCursorPos(position);
-      yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
-      Input.Click(MouseButtons.Left);
+      await InputAsync.MoveMouseToElement(position);
+      await InputAsync.Wait();
+      await InputAsync.Click(MouseButtons.Left);
 
-      yield return new WaitFunctionTimed(() => TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: true }, false, 500, "HaggleWindow not visible");
+      await InputAsync.Wait(() => TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: true }, 500, "HaggleWindow not visible");
       if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: false })
       {
         Error.AddAndShow("Error while haggling", $"HaggleWindow not visible.\nA click on an item has not resulted in the HaggleWindow being visible.\nItem: {item.Name}.\nPlease check your hover delay settings and try again.");
-        yield break;
+        return false;
       }
 
       var attempts = 0;
       while (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: true })
       {
         attempts++;
-        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+        await InputAsync.Wait();
         var maxOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentMaxOffer;
         var minOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentMinOffer;
         var currentOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentOffer;
 
         var multiplier = attempts == 1 ? TujenMem.Instance.Settings.HaggleMultiplierSettings.Try1 : attempts == 2 ? TujenMem.Instance.Settings.HaggleMultiplierSettings.Try2 : TujenMem.Instance.Settings.HaggleMultiplierSettings.Try3;
         int targetOffer = TujenMem.Instance.Settings.HaggleMultiplierSettings.MultiplierMode == "Min To Max" ? (int)(minOffer + Math.Ceiling((maxOffer - minOffer) * multiplier)) : (int)(maxOffer * multiplier);
+
+        var s1 = new Stopwatch();
+        s1.Start();
         while (currentOffer > targetOffer && currentOffer > minOffer)
         {
           if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: false } || attempts > 3)
           {
             break;
           }
-          Input.VerticalScroll(false, attempts <= 1 ? 10 : 1);
-          yield return new WaitTime(0);
+          var s2 = new Stopwatch();
+          s2.Start();
+          await InputAsync.VerticalScroll(false, attempts <= 1 ? 2 : 1);
+          s2.Stop();
+          Log.Debug($"Time to scroll: {s2.ElapsedMilliseconds}ms");
+          await TaskUtils.NextFrame();
           currentOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentOffer;
         }
-        yield return new WaitTime(0);
-        Input.SetCursorPos(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect().Center);
-        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
-        Input.Click(MouseButtons.Left);
-        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay * 10);
+        s1.Stop();
+        Log.Debug($"Time to Haggle: {s1.ElapsedMilliseconds}ms");
+        await TaskUtils.NextFrame();
+        await InputAsync.MoveMouseToElement(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect().Center);
+        await InputAsync.Wait();
+        await InputAsync.Click(MouseButtons.Left);
+        await InputAsync.WaitX(10);
       }
     }
     Log.Debug("Finished haggling for items");
-    yield return true;
+    return true;
   }
 
   private bool IsBlacklisted(HaggleItem item)

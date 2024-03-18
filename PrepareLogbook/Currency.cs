@@ -41,59 +41,64 @@ public class Currency
     }
   }
 
-  public IEnumerator Hold()
+  public async SyncTask<bool> Hold()
   {
-    Input.SetCursorPos(Position);
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
-    Input.KeyDown(Keys.ShiftKey);
-    Input.Click(MouseButtons.Right);
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+    await InputAsync.MoveMouseToElement(Position);
+    await InputAsync.Wait();
+    await InputAsync.KeyDown(Keys.ShiftKey);
+    await InputAsync.Click(MouseButtons.Right);
+    await InputAsync.Wait();
     Holding = true;
+    return true;
   }
 
-  public IEnumerator Release()
+  public async SyncTask<bool> Release()
   {
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
-    Input.KeyUp(Keys.ShiftKey);
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+    await InputAsync.Wait();
+    await InputAsync.KeyUp(Keys.ShiftKey);
+    await InputAsync.Wait();
     Holding = false;
+    return true;
   }
 
-  public IEnumerator Use(Vector2 position)
+  public async SyncTask<bool> Use(Vector2 position)
   {
     if (!Holding)
     {
-      yield return Hold();
+      await Hold();
     }
-    Input.SetCursorPos(position);
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
-    Input.Click(MouseButtons.Left);
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+    await InputAsync.MoveMouseToElement(position);
+    await InputAsync.Wait();
+    await InputAsync.Click(MouseButtons.Left);
+    await InputAsync.Wait();
+    return true;
   }
 
-  public IEnumerator Hover()
+  public async SyncTask<bool> Hover()
   {
-    Input.SetCursorPos(Position);
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+    await InputAsync.MoveMouseToElement(Position);
+    await InputAsync.Wait();
+    return true;
   }
 
-  public IEnumerator GetStack()
+  public async SyncTask<bool> GetStack()
   {
-    yield return Hover();
-    yield return new WaitTime(100);
-    Input.KeyDown(Keys.ControlKey);
-    Input.Click(MouseButtons.Left);
-    Input.KeyUp(Keys.ControlKey);
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+    await Hover();
+    await InputAsync.WaitX(5);
+    await InputAsync.KeyDown(Keys.ControlKey);
+    await InputAsync.Click(MouseButtons.Left);
+    await InputAsync.KeyUp(Keys.ControlKey);
+    await InputAsync.Wait();
+    return true;
   }
 
-  public IEnumerator GetFraction(int num)
+  public async SyncTask<bool> GetFraction(int num)
   {
-    yield return Hover();
-    Input.KeyDown(Keys.ShiftKey);
-    Input.Click(MouseButtons.Left);
-    Input.KeyUp(Keys.ShiftKey);
-    yield return new WaitFunctionTimed(() => TujenMem.Instance.GameController.IngameState.IngameUi.GetChildAtIndex(149) is { IsVisible: true }, true, 1000, "Split window not opened");
+    await Hover();
+    await InputAsync.KeyDown(Keys.ShiftKey);
+    await InputAsync.Click(MouseButtons.Left);
+    await InputAsync.KeyUp(Keys.ShiftKey);
+    await InputAsync.Wait(() => TujenMem.Instance.GameController.IngameState.IngameUi.GetChildAtIndex(149) is { IsVisible: true }, 1000, "Split window not opened");
     var numAsString = num.ToString();
 
     // iterate each number and send the key
@@ -102,11 +107,12 @@ public class Currency
       var key = (Keys)c;
       Input.KeyDown(key);
       Input.KeyUp(key);
-      yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+      await InputAsync.Wait();
     }
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
-    Input.KeyDown(Keys.Enter);
-    Input.KeyUp(Keys.Enter);
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+    await InputAsync.Wait();
+    await InputAsync.KeyDown(Keys.Enter);
+    await InputAsync.KeyUp(Keys.Enter);
+    await InputAsync.Wait();
+    return true;
   }
 }

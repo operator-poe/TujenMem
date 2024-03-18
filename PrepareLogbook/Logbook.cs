@@ -329,9 +329,9 @@ public class Logbook
     }
   }
 
-  public IEnumerator Hover()
+  public async SyncTask<bool> Hover()
   {
-    Input.SetCursorPos(Position);
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+    await InputAsync.MoveMouseToElement(Position);
+    return await InputAsync.Wait();
   }
 }

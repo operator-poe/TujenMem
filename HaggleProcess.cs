@@ -20,14 +20,14 @@ public class HaggleProcess
     CurrentWindow = new HaggleProcessWindow();
   }
 
-  public IEnumerator Run()
+  public async SyncTask<bool> Run()
   {
     CurrentWindow.ReadItems();
-    yield return new WaitTime(0);
+    await TaskUtils.NextFrame();
     CurrentWindow.ApplyMappingToItems();
-    yield return new WaitTime(0);
+    await TaskUtils.NextFrame();
     CurrentWindow.FilterItems();
-    yield return new WaitTime(0);
+    await TaskUtils.NextFrame();
 
     var attempts = 0;
     while (CurrentWindow.Items.Any(x => x.State == HaggleItemState.Unpriced))
@@ -36,16 +36,18 @@ public class HaggleProcess
       if (attempts > 3)
       {
         Error.AddAndShow("Error pricing items.", $"Too many attempts to price items. Stopping.\nThis could be related to missing Ninja data.");
-        yield break;
+        return false;
       }
-      yield return CurrentWindow.GetItemPrices();
-      yield return new WaitTime(0);
+      await CurrentWindow.GetItemPrices();
+      await TaskUtils.NextFrame();
     }
-    yield return new WaitTime(0);
+    await TaskUtils.NextFrame();
     if (!TujenMem.Instance.Settings.DebugOnly)
     {
-      yield return CurrentWindow.HaggleForItems();
+      await CurrentWindow.HaggleForItems();
     }
+
+    return true;
   }
 
 

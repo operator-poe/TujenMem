@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Linq;
 using ExileCore.Shared;
 using ExileCore.Shared.Enums;
@@ -12,24 +11,24 @@ public class Runner
   private static Stash Stash { get; set; }
   private static Inventory Inventory { get; set; }
 
-  public static IEnumerator RollAndBlessLogbooksCoroutine()
+  public static async SyncTask<bool> RollAndBlessLogbooksCoroutine()
   {
     Stash = new Stash();
     Inventory = new Inventory();
 
     if (TujenMem.Instance.Settings.PrepareLogbookSettings.EnableRolling)
     {
-      yield return RollLogbooks();
+      await RollLogbooks();
     }
     if (TujenMem.Instance.Settings.PrepareLogbookSettings.EnableBlessing)
     {
-      yield return BlessLogbooks();
+      await BlessLogbooks();
     }
 
-    Stash.CleanUp();
+    return await Stash.CleanUp();
   }
 
-  private static IEnumerator RollLogbooks()
+  private static async SyncTask<bool> RollLogbooks()
   {
     // Identify all logbooks
     foreach (var l in Inventory.Logbooks)
@@ -37,10 +36,10 @@ public class Runner
       if (l.IsCorrupted) continue;
       if (!l.IsIdentified)
       {
-        yield return Stash.Wisdom.Use(l.Position);
+        await Stash.Wisdom.Use(l.Position);
       }
     }
-    yield return Stash.CleanUp();
+    await Stash.CleanUp();
 
     // Scour magic logbooks
     foreach (var l in Inventory.Logbooks)
@@ -48,11 +47,11 @@ public class Runner
       if (l.IsCorrupted) continue;
       if (l.Rarity == ItemRarity.Magic)
       {
-        yield return Stash.Scouring.Use(l.Position);
-        yield return new WaitTime(80);
+        await Stash.Scouring.Use(l.Position);
+        await InputAsync.WaitX(5);
       }
     }
-    yield return Stash.CleanUp();
+    await Stash.CleanUp();
 
     // Alch normal logbooks
     foreach (var l in Inventory.Logbooks)
@@ -60,18 +59,18 @@ public class Runner
       if (l.IsCorrupted) continue;
       if (l.Rarity == ItemRarity.Normal)
       {
-        yield return Stash.Alchemy.Use(l.Position);
-        yield return new WaitTime(80);
+        await Stash.Alchemy.Use(l.Position);
+        await InputAsync.WaitX(5);
       }
     }
-    yield return Stash.CleanUp();
+    await Stash.CleanUp();
 
     // Actually roll the logbooks
     var badMods = TujenMem.Instance.Settings.PrepareLogbookSettings.ModsBlackList.Value.Split(',').Select(x => x.ToLower()).ToList();
     foreach (var l in Inventory.Logbooks)
     {
       if (l.IsCorrupted) continue;
-      yield return l.Hover();
+      await l.Hover();
       while (
         l.Quantity < TujenMem.Instance.Settings.PrepareLogbookSettings.MinQuantity
         ||
@@ -81,27 +80,27 @@ public class Runner
         // Items should not be magic any more but just in case do a last check (for fractures for example)
         if (l.Rarity == ItemRarity.Magic)
         {
-          yield return Stash.Regal.Use(l.Position);
-          yield return Stash.Regal.Release();
+          await Stash.Regal.Use(l.Position);
+          await Stash.Regal.Release();
         }
         if (TujenMem.Instance.Settings.PrepareLogbookSettings.UseChaos)
         {
-          yield return Stash.Chaos.Use(l.Position);
+          await Stash.Chaos.Use(l.Position);
         }
         else
         {
-          yield return Stash.Scouring.Use(l.Position);
-          yield return Stash.Scouring.Release();
-          yield return Stash.Alchemy.Use(l.Position);
-          yield return Stash.Alchemy.Release();
+          await Stash.Scouring.Use(l.Position);
+          await Stash.Scouring.Release();
+          await Stash.Alchemy.Use(l.Position);
+          await Stash.Alchemy.Release();
         }
-        yield return new WaitTime(80);
+        await InputAsync.WaitX(5);
       }
     }
-    yield return Stash.CleanUp();
+    return await Stash.CleanUp();
   }
 
-  private static IEnumerator BlessLogbooks()
+  private static async SyncTask<bool> BlessLogbooks()
   {
     foreach (var l in Inventory.Logbooks)
     {
@@ -110,12 +109,12 @@ public class Runner
       {
         while (!l.IsBlessed)
         {
-          yield return Stash.Blessed.Use(l.Position);
-          yield return new WaitTime(80);
+          await Stash.Blessed.Use(l.Position);
+          await InputAsync.WaitX(5);
         }
       }
     }
-    yield return new WaitTime(80);
-    yield return Stash.CleanUp();
+    await InputAsync.WaitX(5);
+    return await Stash.CleanUp();
   }
 }

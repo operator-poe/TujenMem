@@ -80,16 +80,16 @@ public class Stash
     RefreshCurrencies();
   }
 
-  public IEnumerator CleanUp()
+  public async SyncTask<bool> CleanUp()
   {
     foreach (var currency in Currencies.Values)
     {
       if (currency.Holding)
       {
-        yield return currency.Release();
+        await currency.Release();
       }
     }
-    yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+    return await InputAsync.Wait();
   }
 
   public void RefreshCurrencies()
