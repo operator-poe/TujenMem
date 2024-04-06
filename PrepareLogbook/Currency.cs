@@ -26,27 +26,25 @@ public class Currency
     }
   }
 
-  public Vector2 Position
+  public RectangleF Position
   {
     get
     {
       if (ChildIndex == -1)
       {
-        return Vector2.Zero;
+        return RectangleF.Empty;
       }
       var stash = TujenMem.Instance.GameController.IngameState.IngameUi.StashElement;
       var item = stash.VisibleStash.VisibleInventoryItems[ChildIndex];
-      var position = item.GetClientRect().Center;
+      var position = item.GetClientRect();
       return position;
     }
   }
 
   public async SyncTask<bool> Hold()
   {
-    await InputAsync.MoveMouseToElement(Position);
-    await InputAsync.Wait();
     await InputAsync.KeyDown(Keys.ShiftKey);
-    await InputAsync.Click(MouseButtons.Right);
+    await InputAsync.ClickElement(Position, MouseButtons.Right);
     await InputAsync.Wait();
     Holding = true;
     return true;
@@ -61,15 +59,13 @@ public class Currency
     return true;
   }
 
-  public async SyncTask<bool> Use(Vector2 position)
+  public async SyncTask<bool> Use(RectangleF position)
   {
     if (!Holding)
     {
       await Hold();
     }
-    await InputAsync.MoveMouseToElement(position);
-    await InputAsync.Wait();
-    await InputAsync.Click(MouseButtons.Left);
+    await InputAsync.ClickElement(position, MouseButtons.Left);
     await InputAsync.Wait();
     return true;
   }

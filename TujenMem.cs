@@ -147,9 +147,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             {
                 continue;
             }
-            await InputAsync.MoveMouseToElement(item.GetClientRect().Center);
-            await InputAsync.Wait();
-            await InputAsync.Click(MouseButtons.Left);
+            // await InputAsync.ClickElement(item.GetClientRect().Center);
+            await InputAsync.ClickElement(item.GetClientRect());
             await InputAsync.Wait();
         }
         await InputAsync.KeyUp(Keys.ControlKey);
@@ -194,11 +193,10 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 Error.AddAndShow("Error", "Tujen not visible.\nMake sure that he is positioned within short reach.");
                 return false;
             }
-            await InputAsync.MoveMouseToElement(labelOnGround.Label.GetClientRect().Center);
-            await InputAsync.Wait();
             await InputAsync.KeyDown(Keys.ControlKey);
             await InputAsync.Wait();
-            await InputAsync.Click(MouseButtons.Left);
+            // await InputAsync.ClickElement(labelOnGround.Label.GetClientRect().Center);
+            await InputAsync.ClickElement(labelOnGround.Label.GetClientRect());
             await InputAsync.KeyUp(Keys.ControlKey);
             await InputAsync.Wait(() => haggleWindow is { IsVisible: true }, 1000);
             if (haggleWindow is { IsVisible: false })
@@ -234,9 +232,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 LogError("Stash not visible");
                 return false;
             }
-            await InputAsync.MoveMouseToElement(labelOnGround.Label.GetClientRect().Center);
-            await InputAsync.Wait();
-            await InputAsync.Click(MouseButtons.Left);
+            // await InputAsync.ClickElement(labelOnGround.Label.GetClientRect().Center);
+            await InputAsync.ClickElement(labelOnGround.Label.GetClientRect());
             await InputAsync.Wait(() => stash is { IsVisible: true }, 1000);
             if (stash is { IsVisible: false })
             {
@@ -367,7 +364,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             {
                 break;
             }
-            await InputAsync.WaitX(3);
+            await InputAsync.Wait();
             if (ShouldEmptyInventory())
             {
                 await EmptyInventoryCoRoutine();
@@ -386,7 +383,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                     return false;
                 }
             }
-            await InputAsync.WaitX(3);
+            await InputAsync.Wait();
         }
 
 
@@ -408,10 +405,9 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             Error.AddAndShow("Error while ReRolling", "Haggle window not open!");
             return false;
         }
-        await InputAsync.MoveMouseToElement(GameController.IngameState.IngameUi.HaggleWindow.RefreshItemsButton.GetClientRect().Center);
+        // await InputAsync.ClickElement(GameController.IngameState.IngameUi.HaggleWindow.RefreshItemsButton.GetClientRect().Center);
+        await InputAsync.ClickElement(GameController.IngameState.IngameUi.HaggleWindow.RefreshItemsButton.GetClientRect());
         await InputAsync.Wait();
-        await InputAsync.Click(MouseButtons.Left);
-        await InputAsync.WaitX(3);
         Log.Debug("ReRolled window");
         return true;
     }
@@ -425,6 +421,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         InputAsync.IControllerEnd();
         HaggleState = HaggleState.Idle;
         Input.KeyUp(Keys.ControlKey);
+        Input.KeyUp(Keys.ShiftKey);
     }
 
     public bool IsAnyRoutineRunning

@@ -372,6 +372,7 @@ public class TujenMemSettings : ISettings
 
     public PrepareLogbookSettings PrepareLogbookSettings { get; set; } = new PrepareLogbookSettings();
     public SillyOrExperimenalFeatures SillyOrExperimenalFeatures { get; set; } = new SillyOrExperimenalFeatures();
+    public Gwennen Gwennen { get; set; } = new Gwennen();
 
     public ListNode LogLevel { get; set; } = new ListNode
     {
@@ -599,4 +600,59 @@ public class SillyOrExperimenalFeatures
     public ToggleNode EnableVoranaWarning { get; set; } = new ToggleNode(false);
     [Menu("Enable Vorana Warning Sound", "THIS IS REALLY SILLY. DO NOT ENABLE THIS UNLESS YOU WANT TO BE ANNOYED.")]
     public ToggleNode EnableVoranaWarningSound { get; set; } = new ToggleNode(false);
+}
+
+
+[Submenu(CollapsedByDefault = true)]
+public class Gwennen
+{
+    public ToggleNode EnableGwennen { get; set; } = new ToggleNode(false);
+
+    public List<string> BaseList { get; set; } = new List<string>();
+
+    [JsonIgnore]
+    public CustomNode BaseListNode { get; set; }
+
+    public Gwennen()
+    {
+        var baseListInput = "";
+        var baseListSelected = "";
+        BaseListNode = new CustomNode
+        {
+            DrawDelegate = () =>
+            {
+                if (ImGui.TreeNode("BaseList"))
+                {
+                    ImGui.InputTextWithHint("##BaseInput", "Keyword", ref baseListInput, 100);
+                    ImGui.SameLine();
+                    if (ImGui.Button("Add to Blacklist"))
+                    {
+                        BaseList.Add(baseListInput);
+                        baseListInput = "";
+                    }
+
+                    ImGui.BeginChild("##BaseListList", new System.Numerics.Vector2(0, 200), ImGuiChildFlags.Border);
+                    foreach (var s in BaseList)
+                    {
+                        if (ImGui.Selectable(s, s == baseListSelected))
+                        {
+                            baseListSelected = s;
+                        }
+                    }
+                    ImGui.EndChild();
+                    if (baseListSelected != "")
+                    {
+                        ImGui.Text("Selected: " + baseListSelected);
+                        ImGui.SameLine();
+                        if (ImGui.Button("Remove"))
+                        {
+                            BaseList.Remove(baseListSelected);
+                            baseListSelected = "";
+                        }
+                    }
+                    ImGui.TreePop();
+                }
+            }
+        };
+    }
 }

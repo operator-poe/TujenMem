@@ -14,7 +14,8 @@ public class Stash
     "Orb of Alchemy",
     "Chaos Orb",
     "Blessed Orb",
-    "Divine Orb"
+    "Divine Orb",
+    "Cartographer's Chisel"
   };
 
   public Dictionary<string, Currency> Currencies { get; set; } = new Dictionary<string, Currency>();
@@ -75,6 +76,14 @@ public class Stash
     }
   }
 
+  public Currency Chisel
+  {
+    get
+    {
+      return Currencies["Cartographer's Chisel"];
+    }
+  }
+
   public Stash()
   {
     RefreshCurrencies();
@@ -89,6 +98,8 @@ public class Stash
         await currency.Release();
       }
     }
+    InputAsync.LOCK_CONTROLLER = false;
+    InputAsync.IControllerEnd();
     return await InputAsync.Wait();
   }
 

@@ -6,11 +6,13 @@ using InputHumanizer.Input;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using ExileCore.Shared.Helpers;
 
 namespace TujenMem;
 
 public class InputAsync : ExileCore.Input
 {
+  private static Random Random { get; } = new Random();
   private static TujenMem Instance = TujenMem.Instance;
   public static IInputController _inputController = null;
   public static bool LOCK_CONTROLLER = false;
@@ -56,17 +58,41 @@ public class InputAsync : ExileCore.Input
     _inputController = null;
   }
 
-  public static async SyncTask<bool> ClickElement(Vector2 pos, MouseButtons mouseButton = MouseButtons.Left)
+  // public static async SyncTask<bool> ClickElement(Vector2 pos, MouseButtons mouseButton = MouseButtons.Left)
+  // {
+  //   IController();
+  //   await _inputController.MoveMouse(V2(pos));
+  //   await _inputController.Click(mouseButton);
+  //   IControllerEnd();
+  //   return true;
+  // }
+
+  private static System.Numerics.Vector2 AnywhereInRectangle(RectangleF rect)
+  {
+    var topLeft = rect.TopLeft;
+    var bottomRight = rect.BottomRight;
+    var xTenPct = (int)((bottomRight.X - topLeft.X) * 0.2f);
+    var yTenPct = (int)((bottomRight.Y - topLeft.Y) * 0.2f);
+    var randomX = Random.Next((int)topLeft.X + xTenPct, (int)bottomRight.X - xTenPct);
+    var randomY = Random.Next((int)topLeft.Y + yTenPct, (int)bottomRight.Y - yTenPct);
+    return new System.Numerics.Vector2(randomX, randomY);
+  }
+
+  public static async SyncTask<bool> ClickElement(RectangleF pos, MouseButtons mouseButton = MouseButtons.Left)
   {
     IController();
-    await _inputController.MoveMouse(V2(pos));
+    await _inputController.MoveMouse(AnywhereInRectangle(pos));
     await _inputController.Click(mouseButton);
     IControllerEnd();
     return true;
   }
 
 
-  public static async SyncTask<bool> ClickElement(Vector2 pos)
+  // public static async SyncTask<bool> ClickElement(Vector2 pos)
+  // {
+  //   return await ClickElement(pos, MouseButtons.Left);
+  // }
+  public static async SyncTask<bool> ClickElement(RectangleF pos)
   {
     return await ClickElement(pos, MouseButtons.Left);
   }
@@ -86,6 +112,13 @@ public class InputAsync : ExileCore.Input
     IControllerEnd();
     return true;
   }
+  public static async SyncTask<bool> MoveMouseToElement(RectangleF pos)
+  {
+    IController();
+    await _inputController.MoveMouse(AnywhereInRectangle(pos));
+    IControllerEnd();
+    return true;
+  }
 
   public static async SyncTask<bool> Delay(int ms = 0)
   {
@@ -100,7 +133,7 @@ public class InputAsync : ExileCore.Input
       WinApi.mouse_event(MOUSE_EVENT_WHEEL, 0, 0, clicks * wheelDelta, 0);
     else
       WinApi.mouse_event(MOUSE_EVENT_WHEEL, 0, 0, -(clicks * wheelDelta), 0);
-    return await InputAsync.Wait(1);
+    return Random.Next(0, 10) > 6 ? await Wait(Random.Next(1, 15)) : true;
     // return await _inputController.VerticalScroll(scrollUp, clicks * wheelDelta);
   }
 

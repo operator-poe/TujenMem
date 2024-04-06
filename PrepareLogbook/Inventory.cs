@@ -8,11 +8,11 @@ namespace TujenMem.PrepareLogbook;
 
 public class Inventory
 {
-  public List<Logbook> Logbooks { get; set; } = new List<Logbook>();
+  public List<ReRollable> Logbooks { get; set; } = new List<ReRollable>();
 
   public Inventory()
   {
-    Logbooks = new List<Logbook>();
+    Logbooks = new List<ReRollable>();
     var inventory = TujenMem.Instance.GameController.IngameState.IngameUi.InventoryPanel[InventoryIndex.PlayerInventory];
     var inventoryItems = inventory.VisibleInventoryItems;
     for (int i = 0; i < inventoryItems.Count(); i++)
@@ -21,7 +21,16 @@ public class Inventory
       {
         Logbooks.Add(new Logbook
         {
-          GridPosition = inventoryItems.ElementAt(i).GetClientRect().Center
+          GridPosition = inventoryItems.ElementAt(i).GetClientRect(),
+        });
+      }
+      else if
+       (inventoryItems.ElementAt(i).Item.Path.Contains("/Maps/"))
+      {
+        Logbooks.Add(new Map
+        {
+          GridPosition = inventoryItems.ElementAt(i).GetClientRect(),
+          Quality = inventoryItems.ElementAt(i).Item.GetComponent<Quality>()?.ItemQuality ?? 0
         });
       }
     }

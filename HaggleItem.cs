@@ -15,7 +15,7 @@ public enum HaggleItemState
 public class HaggleItem
 {
   public long Address { get; set; }
-  public Vector2 Position { get; set; }
+  public RectangleF Position { get; set; }
   public HaggleCurrency Price { get; set; }
 
   public string Name { get; set; }

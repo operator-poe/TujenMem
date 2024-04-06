@@ -1,4 +1,6 @@
+using System;
 using System.Linq;
+using ExileCore;
 using ExileCore.Shared;
 using ExileCore.Shared.Enums;
 
@@ -48,6 +50,35 @@ public class Runner
       if (l.Rarity == ItemRarity.Magic)
       {
         await Stash.Scouring.Use(l.Position);
+        await InputAsync.WaitX(5);
+      }
+    }
+    await Stash.CleanUp();
+
+    // Scour non Quality maps
+    foreach (var l in Inventory.Logbooks)
+    {
+      if (l.IsCorrupted) continue;
+      if (l.Rarity == ItemRarity.Rare && l is Map map && map.Quality < 20)
+      {
+        await Stash.Scouring.Use(l.Position);
+        await InputAsync.WaitX(5);
+      }
+    }
+    await Stash.CleanUp();
+
+    // Apply chisels to maps
+    foreach (var l in Inventory.Logbooks)
+    {
+      if (l.IsCorrupted) continue;
+      if (l is Map map && map.Quality < 20)
+      {
+        double needed = (20 - map.Quality) / 5;
+        needed = Math.Max(Math.Ceiling(needed), 1);
+        for (int i = 0; i < needed; i++)
+        {
+          await Stash.Chisel.Use(l.Position);
+        }
         await InputAsync.WaitX(5);
       }
     }
@@ -105,11 +136,11 @@ public class Runner
     foreach (var l in Inventory.Logbooks)
     {
       if (l.IsCorrupted) continue;
-      if (l.Rarity == ItemRarity.Rare)
+      if (l.Rarity == ItemRarity.Rare && l is Logbook logbook)
       {
-        while (!l.IsBlessed)
+        while (!logbook.IsBlessed)
         {
-          await Stash.Blessed.Use(l.Position);
+          await Stash.Blessed.Use(logbook.Position);
           await InputAsync.WaitX(5);
         }
       }

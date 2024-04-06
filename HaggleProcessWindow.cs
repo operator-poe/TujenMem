@@ -60,7 +60,7 @@ public class HaggleProcessWindow
         Items.Add(new HaggleItemMap
         {
           Address = address,
-          Position = inventoryItem.GetClientRect().Center,
+          Position = inventoryItem.GetClientRect(),
           Name = isUnique ? mods.UniqueName : baseItem.BaseName,
           Type = type,
           Amount = stack?.Size ?? 1,
@@ -73,18 +73,18 @@ public class HaggleProcessWindow
 
         continue;
       }
-      else if (baseItem.BaseName.Contains("Cluster"))
+      else if (type == "Jewel" && baseItem.BaseName.Contains("Cluster"))
       {
         var baseCluster = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Base>();
         var mods = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
         var itemLevel = mods.ItemLevel;
         var passives = int.Parse(Regex.Replace(mods.EnchantedStats[0], "[^0-9]", ""));
-        var name = mods.EnchantedStats[2].Replace("Added Small Passive Skills grant: ", "").Trim();
+        var name = mods.EnchantedStats[baseItem.BaseName.Contains("Small") ? 1 : 2].Replace("Added Small Passive Skills grant: ", "").Trim();
 
         Items.Add(new HaggleItemClusterJewel
         {
           Address = address,
-          Position = inventoryItem.GetClientRect().Center,
+          Position = inventoryItem.GetClientRect(),
           Name = name,
           Type = type,
           Amount = stack?.Size ?? 1,
@@ -107,7 +107,8 @@ public class HaggleProcessWindow
         Items.Add(new HaggleItemGem
         {
           Address = address,
-          Position = inventoryItem.GetClientRect().Center,
+          // Position = inventoryItem.GetClientRect().Center,
+          Position = inventoryItem.GetClientRect(),
           Name = baseItem.BaseName,
           Type = type,
           Amount = stack?.Size ?? 1,
@@ -133,7 +134,7 @@ public class HaggleProcessWindow
         Items.Add(new HaggleItem
         {
           Address = address,
-          Position = inventoryItem.GetClientRect().Center,
+          Position = inventoryItem.GetClientRect(),
           Name = baseItem.BaseName,
           Type = baseItem.ClassName + addToType,
           Amount = stack?.Size ?? 1,
@@ -386,9 +387,7 @@ public class HaggleProcessWindow
       }
 
       var position = item.Position;
-      await InputAsync.MoveMouseToElement(position);
-      await InputAsync.Wait();
-      await InputAsync.Click(MouseButtons.Left);
+      await InputAsync.ClickElement(position);
 
       await InputAsync.Wait(() => TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: true }, 500, "HaggleWindow not visible");
       if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: false })
@@ -419,7 +418,7 @@ public class HaggleProcessWindow
           }
           var s2 = new Stopwatch();
           s2.Start();
-          await InputAsync.VerticalScroll(false, attempts <= 1 ? 2 : 1);
+          await InputAsync.VerticalScroll(false, 1);
           s2.Stop();
           Log.Debug($"Time to scroll: {s2.ElapsedMilliseconds}ms");
           await TaskUtils.NextFrame();
@@ -428,8 +427,9 @@ public class HaggleProcessWindow
         s1.Stop();
         Log.Debug($"Time to Haggle: {s1.ElapsedMilliseconds}ms");
         await TaskUtils.NextFrame();
-        await InputAsync.ClickElement(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect().Center);
-        await InputAsync.WaitX(10);
+        // await InputAsync.ClickElement(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect().Center);
+        await InputAsync.ClickElement(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect());
+        await InputAsync.Wait();
       }
     }
     Log.Debug("Finished haggling for items");
