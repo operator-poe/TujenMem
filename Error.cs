@@ -33,10 +33,7 @@ public class Error
     public static void Show()
     {
         showErrorModal = true;
-        if (TujenMem.Instance.IsAnyRoutineRunning)
-        {
-            TujenMem.Instance.StopAllRoutines();
-        }
+        TujenMem.Instance.StopAllRoutines();
     }
 
     public static void ShowIfNeeded()

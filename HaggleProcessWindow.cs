@@ -427,7 +427,6 @@ public class HaggleProcessWindow
         s1.Stop();
         Log.Debug($"Time to Haggle: {s1.ElapsedMilliseconds}ms");
         await TaskUtils.NextFrame();
-        // await InputAsync.ClickElement(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect().Center);
         await InputAsync.ClickElement(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect());
         await InputAsync.Wait();
       }

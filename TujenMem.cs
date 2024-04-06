@@ -337,6 +337,12 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private HaggleProcess _process = null;
     private async SyncTask<bool> HaggleCoroutine()
     {
+        // Interject here for Gwennen
+        if (Settings.Gwennen.EnableGwennen && GwennenRunner.CanGwennen())
+        {
+            return await GwennenRunner.Run();
+        }
+
         HaggleState = HaggleState.Running;
         Log.Debug("Starting Haggle process");
         await FindAndClickTujen();
@@ -380,6 +386,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 if (oldCount == HaggleStock.Coins)
                 {
                     Error.AddAndShow("Error", "Window did not reroll after attempting a click.\nCheck your hover delay and make sure that the window is not obstructed.");
+                    StopAllRoutines();
                     return false;
                 }
             }
@@ -397,7 +404,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         return true;
     }
 
-    private async SyncTask<bool> ReRollWindow()
+    public async SyncTask<bool> ReRollWindow()
     {
         Log.Debug("ReRolling window");
         if (GameController.IngameState.IngameUi.HaggleWindow is { IsVisible: false })
@@ -405,7 +412,6 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             Error.AddAndShow("Error while ReRolling", "Haggle window not open!");
             return false;
         }
-        // await InputAsync.ClickElement(GameController.IngameState.IngameUi.HaggleWindow.RefreshItemsButton.GetClientRect().Center);
         await InputAsync.ClickElement(GameController.IngameState.IngameUi.HaggleWindow.RefreshItemsButton.GetClientRect());
         await InputAsync.Wait();
         Log.Debug("ReRolled window");
@@ -422,6 +428,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         HaggleState = HaggleState.Idle;
         Input.KeyUp(Keys.ControlKey);
         Input.KeyUp(Keys.ShiftKey);
+        HaggleStock.StockType = StockType.Tujen;
     }
 
     public bool IsAnyRoutineRunning
