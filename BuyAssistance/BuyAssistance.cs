@@ -45,6 +45,7 @@ public class BuyAssistance
 
   private static readonly Stopwatch _clipboardStopwatch = new Stopwatch();
   private static string _cachedClipboardText = string.Empty;
+  private static string _lastClipboardTextForCurrentOffer = string.Empty;
   private const int ClipboardDebounceTimeMs = 250;
 
   private static void UpdateClipboardCache()
@@ -139,6 +140,13 @@ public class BuyAssistance
       return;
     }
 
+    // If the clipboard text is the same one that generated the current offer,
+    // don't do anything. This prevents overwriting user modifications.
+    if (CurrentOffer != null && clipboardText == _lastClipboardTextForCurrentOffer)
+    {
+      return;
+    }
+
     var (ign, quantity, price) = ParseOffer.ExtractOffer(clipboardText);
 
     if (string.IsNullOrEmpty(ign) || (LastOffer != null && LastOffer.Ign == ign))
@@ -146,18 +154,14 @@ public class BuyAssistance
       return;
     }
 
-    // Don't create a new offer object if it's the same as the current one
-    if (CurrentOffer != null && CurrentOffer.Ign == ign && CurrentOffer.Quantity == quantity && CurrentOffer.Price == price)
-    {
-      return;
-    }
-
+    // We have a valid, new offer. Create it and store the source text.
     CurrentOffer = new LogbookOffer
     {
       Quantity = quantity,
       Price = price,
       Ign = ign
     };
+    _lastClipboardTextForCurrentOffer = clipboardText;
   }
 
   [DllImport("user32.dll", SetLastError = true)]
@@ -333,7 +337,12 @@ public class BuyAssistance
       ImGui.Text(CurrentOffer.Ign);
 
       ImGui.TableNextColumn();
-      ImGui.Text(CurrentOffer.Quantity.ToString());
+      ImGui.SetNextItemWidth(100);
+      var quantity = CurrentOffer.Quantity;
+      if (ImGui.InputInt("##quantity", ref quantity))
+      {
+        CurrentOffer.Quantity = quantity;
+      }
 
       ImGui.TableNextColumn();
       ImGui.Text(CurrentOffer.Price.ToString());
