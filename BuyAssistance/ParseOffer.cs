@@ -94,7 +94,7 @@ public class ParseOffer
     string paragraphContext = null;
     foreach (var p in paragraphs)
     {
-      if (p.IndexOf("Black Scythe", StringComparison.OrdinalIgnoreCase) >= 0 || p.IndexOf("Black ", StringComparison.OrdinalIgnoreCase) >= 0)
+      if (p.IndexOf("Black", StringComparison.OrdinalIgnoreCase) >= 0 || p.IndexOf("Scythe", StringComparison.OrdinalIgnoreCase) >= 0)
       {
         paragraphContext = p;
         break;
@@ -103,7 +103,7 @@ public class ParseOffer
 
     if (paragraphContext == null)
     {
-      if (cleanedText.IndexOf("Black Scythe", StringComparison.OrdinalIgnoreCase) >= 0 || cleanedText.IndexOf("Black ", StringComparison.OrdinalIgnoreCase) >= 0)
+      if (cleanedText.IndexOf("Black", StringComparison.OrdinalIgnoreCase) >= 0 || cleanedText.IndexOf("Scythe", StringComparison.OrdinalIgnoreCase) >= 0)
       {
         paragraphContext = cleanedText;
       }
@@ -119,7 +119,7 @@ public class ParseOffer
     string lineContext = null;
     foreach (var line in lines)
     {
-      if (line.IndexOf("Black Scythe", StringComparison.OrdinalIgnoreCase) >= 0 || line.IndexOf("Black ", StringComparison.OrdinalIgnoreCase) >= 0)
+      if (line.IndexOf("Black", StringComparison.OrdinalIgnoreCase) >= 0 || line.IndexOf("Scythe", StringComparison.OrdinalIgnoreCase) >= 0)
       {
         lineContext = line;
         break;

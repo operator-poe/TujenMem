@@ -80,6 +80,13 @@ x4 Sun 45c each
 x18 black scythe 30c each
 
 ign Thorcall ", "Thorcall", 18, 30)]
+    [InlineData(@"WTS Softcore
+Logbook ilvl 82+ Non Corrupted/Split/Mir
+
+x5 black- 37c each
+
+IGN: @pacat 
+", "pacat", 5, 37)]
 
     public void ExtractOffer_ShouldParseCorrectly(string input, string expectedItem, int expectedAmount, int expectedPrice)
     {
