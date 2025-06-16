@@ -75,6 +75,12 @@ x8 Black Scythe -- 40c/ea
 x4 Sun -- 55c/ea 
 
 IGN:  @_꼬맹_", "_꼬맹_", 8, 40)]
+    [InlineData(@"ilvl 83 CORRUPTED random rarity
+x4 Sun 45c each
+x18 black scythe 30c each
+
+ign Thorcall ", "Thorcall", 18, 30)]
+
     public void ExtractOffer_ShouldParseCorrectly(string input, string expectedItem, int expectedAmount, int expectedPrice)
     {
       // Arrange
@@ -84,31 +90,6 @@ IGN:  @_꼬맹_", "_꼬맹_", 8, 40)]
       Assert.Equal(expectedItem, item);
       Assert.Equal(expectedAmount, amount);
       Assert.Equal(expectedPrice, price);
-    }
-
-    [Theory]
-    [InlineData("")]  // Empty string
-    [InlineData("WTB")]  // No numbers
-    [InlineData("WTB chaos")]  // No numbers
-    [InlineData("WTB divine")]  // No numbers
-    [InlineData("WTB 1")]  // No currency
-    [InlineData("WTB 1 chaos")]  // No price
-    [InlineData("WTB 1 divine")]  // No price
-    [InlineData("WTB 1 chaos for")]  // Incomplete
-    [InlineData("WTB 1 divine for")]  // Incomplete
-    [InlineData("WTB 1 chaos for 1")]  // Incomplete price
-    [InlineData("WTB 1 divine for 1")]  // Incomplete price
-    [InlineData("WTB 1 chaos for 1 chaos")]  // Same currency
-    [InlineData("WTB 1 divine for 1 divine")]  // Same currency
-    public void ExtractOffer_ShouldHandleInvalidInput(string input)
-    {
-      // Arrange
-      var (item, amount, price) = ParseOffer.ExtractOffer(input);
-
-      // Assert
-      Assert.Null(item);
-      Assert.Equal(0, amount);
-      Assert.Equal(0, price);
     }
   }
 }

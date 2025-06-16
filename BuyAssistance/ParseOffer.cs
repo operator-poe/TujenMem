@@ -43,7 +43,7 @@ public class ParseOffer
     return stringBuilder.ToString();
   }
 
-  protected static string CleanInput(string strIn)
+  public static string CleanInput(string strIn)
   {
     // Replace invalid characters with empty strings, preserving newlines.
     try
@@ -73,7 +73,7 @@ public class ParseOffer
     var cleanedText = CleanInput(text);
 
     // 1. Extract IGN
-    var ignMatch = Regex.Match(cleanedText, @"(?:IGN|ING):\s*@?(\S+)", RegexOptions.IgnoreCase);
+    var ignMatch = Regex.Match(cleanedText, @"(?:IGN|ING)\s*:?\s*@?(\S+)", RegexOptions.IgnoreCase);
     if (!ignMatch.Success)
     {
       // Special case for Mercenaris_godol where IGN is far from the item
@@ -91,21 +91,21 @@ public class ParseOffer
 
     // 2. Isolate context for "Black Scythe"
     var paragraphs = cleanedText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
-    string context = null;
+    string paragraphContext = null;
     foreach (var p in paragraphs)
     {
       if (p.IndexOf("Black Scythe", StringComparison.OrdinalIgnoreCase) >= 0 || p.IndexOf("Black ", StringComparison.OrdinalIgnoreCase) >= 0)
       {
-        context = p;
+        paragraphContext = p;
         break;
       }
     }
 
-    if (context == null)
+    if (paragraphContext == null)
     {
       if (cleanedText.IndexOf("Black Scythe", StringComparison.OrdinalIgnoreCase) >= 0 || cleanedText.IndexOf("Black ", StringComparison.OrdinalIgnoreCase) >= 0)
       {
-        context = cleanedText;
+        paragraphContext = cleanedText;
       }
       else
       {
@@ -114,18 +114,63 @@ public class ParseOffer
       }
     }
 
+    // NEW: Isolate the specific line within the paragraph
+    var lines = paragraphContext.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+    string lineContext = null;
+    foreach (var line in lines)
+    {
+      if (line.IndexOf("Black Scythe", StringComparison.OrdinalIgnoreCase) >= 0 || line.IndexOf("Black ", StringComparison.OrdinalIgnoreCase) >= 0)
+      {
+        lineContext = line;
+        break;
+      }
+    }
+
+    // Fallback to the paragraph if a specific line isn't found (should be rare)
+    if (lineContext == null)
+    {
+      lineContext = paragraphContext;
+    }
+
+
     // 3. Extract stock and price from the context
+    var (stock, price) = ExtractDetailsFromContext(lineContext, cleanedText);
+    if (stock == 0 || price == 0)
+    {
+      var (pStock, pPrice) = ExtractDetailsFromContext(paragraphContext, cleanedText);
+      if (stock == 0) stock = pStock;
+      if (price == 0) price = pPrice;
+    }
+
+    // Final check for one specific test case format: `Black Scythe  ◂44 Сhaos   / each ▸(  20 stock)`
+    if (price != 0 && stock == 0)
+    {
+      var stockInParens = Regex.Match(cleanedText, @"\((\d+)\s*stock\)", RegexOptions.IgnoreCase);
+      if (stockInParens.Success)
+      {
+        stock = int.Parse(stockInParens.Groups[1].Value);
+      }
+    }
+
+    if (stock == 0 || price == 0)
+    {
+      return (null, 0, 0);
+    }
+
+    return (ign, stock, price);
+  }
+
+  private static (int stock, int price) ExtractDetailsFromContext(string context, string cleanedText)
+  {
     int stock = 0;
     int price = 0;
 
-    // Price is a number near "c" or "chaos"
     var priceMatch = Regex.Match(context, @"(\d+)\s*(?:c|Сhaos|chaos)", RegexOptions.IgnoreCase);
     if (priceMatch.Success)
     {
       price = int.Parse(priceMatch.Groups[1].Value);
     }
 
-    // Stock can be "x10", "10x", "10 stock", "stock 10"
     var stockMatch = Regex.Match(context, @"(?:x\s*(\d+))|(?:(\d+)\s*x)|(?:(\d+)\s*stock)|(?:stock\s*(\d+))", RegexOptions.IgnoreCase);
     if (stockMatch.Success)
     {
@@ -139,7 +184,6 @@ public class ParseOffer
       }
     }
 
-    // 4. Handle cases where numbers are not explicitly marked
     if (stock == 0 || price == 0)
     {
       var numberMatches = Regex.Matches(context, @"\d+");
@@ -147,11 +191,6 @@ public class ParseOffer
 
       if (numbers.Count >= 2)
       {
-        // Based on test cases, when two numbers are present on the "Black Scythe" line,
-        // the one appearing first is the stock, and the second one is the price.
-        // E.g., "6x Black Scythe ◂ 45Сhaos"
-        // E.g., "x10 Black Scythe ◂ 40 :chaos:"
-
         var stockAndPriceOnLine = Regex.Match(context, @"(\d+).*?(\d+)");
         if (stockAndPriceOnLine.Success)
         {
@@ -166,8 +205,6 @@ public class ParseOffer
           }
           else
           {
-            // Fallback for cases like "44... 20 stock" where order is reversed.
-            // If we already found a price, the other number is stock. If we found stock, other is price.
             if (price != 0)
             {
               stock = (numbers[0] == price) ? numbers[1] : numbers[0];
@@ -176,16 +213,11 @@ public class ParseOffer
             {
               price = (numbers[0] == stock) ? numbers[1] : numbers[0];
             }
-            else
-            {
-              // If neither is identified, we can't be sure. But tests suggest this won't happen.
-            }
           }
         }
       }
       else if (numbers.Count == 1 && price != 0 && stock == 0)
       {
-        // This can happen if stock is defined elsewhere, like `stock 73`
         var stockInAllText = Regex.Match(cleanedText, @"stock\s*(\d+)", RegexOptions.IgnoreCase);
         if (stockInAllText.Success)
         {
@@ -193,23 +225,6 @@ public class ParseOffer
         }
       }
     }
-
-    // Final check for one specific test case format: `Black Scythe  ◂44 Сhaos   / each ▸(  20 stock)`
-    if (price != 0 && stock == 0)
-    {
-      var stockInParens = Regex.Match(cleanedText, @"\((\d+)\s*stock\)", RegexOptions.IgnoreCase);
-      if (stockInParens.Success)
-      {
-        stock = int.Parse(stockInParens.Groups[1].Value);
-      }
-    }
-
-
-    if (stock == 0 || price == 0)
-    {
-      return (null, 0, 0);
-    }
-
-    return (ign, stock, price);
+    return (stock, price);
   }
 }

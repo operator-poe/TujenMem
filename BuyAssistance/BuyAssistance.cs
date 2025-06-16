@@ -12,6 +12,7 @@ using TujenMem.PrepareLogbook;
 using System.Globalization;
 using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace TujenMem.BuyAssistance;
 
@@ -41,6 +42,25 @@ public class BuyAssistance
         { 'Ι', 'I' }, // Greek Iota -> Latin I
         { 'І', 'I' }, // Cyrillic I -> Latin I
     };
+
+  private static readonly Stopwatch _clipboardStopwatch = new Stopwatch();
+  private static string _cachedClipboardText = string.Empty;
+  private const int ClipboardDebounceTimeMs = 250;
+
+  private static void UpdateClipboardCache()
+  {
+    if (!_clipboardStopwatch.IsRunning)
+    {
+      _clipboardStopwatch.Start();
+    }
+    if (_clipboardStopwatch.ElapsedMilliseconds < ClipboardDebounceTimeMs)
+    {
+      return;
+    }
+
+    _clipboardStopwatch.Restart();
+    _cachedClipboardText = GetClipboardText(); // The original, heavy method
+  }
 
   /// <summary>
   /// Replaces common homoglyphs (characters that look similar) using a predefined map.
@@ -111,64 +131,33 @@ public class BuyAssistance
 
   public static void Tick()
   {
-    string cleanedText = GetCleanClipboardText();
-    if (string.IsNullOrEmpty(cleanedText))
+    UpdateClipboardCache();
+    var clipboardText = _cachedClipboardText;
+
+    if (string.IsNullOrEmpty(clipboardText))
     {
       return;
     }
 
-    // --- Information Extraction ---
+    var (ign, quantity, price) = ParseOffer.ExtractOffer(clipboardText);
 
-    Regex regex = new Regex(@"(?:(\d+)\s*(?:x|stock|pcs?|pieces?|units?)|(?:x|stock|pcs?|pieces?|units?)\s*(\d+))\s*.*?(?:Black\s+Scythe|Scythe\s+Black).*?(?:(\d+)\s*(?:c|chaos|С|:chaos:)|(?:c|chaos|С|:chaos:)\s*(\d+))", RegexOptions.IgnoreCase);
-    MatchCollection matches = regex.Matches(cleanedText);
-
-    foreach (Match match in matches)
+    if (string.IsNullOrEmpty(ign) || (LastOffer != null && LastOffer.Ign == ign))
     {
-      var quantity = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
-      var price = match.Groups[3].Success ? match.Groups[3].Value : match.Groups[4].Value;
-
-      string ign = null;
-      Regex nameRegex = new Regex(@"IGN:?\s*(.*?)(?:\s|$)", RegexOptions.IgnoreCase);
-      Match nameMatch = nameRegex.Match(cleanedText);
-
-      if (nameMatch.Success)
-      {
-        ign = nameMatch.Groups[1].Value.Trim();
-      }
-      else
-      {
-        var words = cleanedText.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var word in words.Reverse())
-        {
-          if (word.Contains("@") || (word.Length >= 3 && !word.Any(char.IsDigit)))
-          {
-            ign = word.Trim().Replace("@", "");
-            break;
-          }
-        }
-      }
-
-      if (string.IsNullOrEmpty(ign) || LastOffer?.Ign == ign)
-      {
-        return;
-      }
-
-      int quantityInt, priceInt;
-      if (!int.TryParse(quantity, out quantityInt) || !int.TryParse(price, out priceInt))
-      {
-        // Don't crash, just skip this match
-        continue;
-      }
-
-      CurrentOffer = new LogbookOffer
-      {
-        Quantity = quantityInt,
-        Price = priceInt,
-        Ign = ign
-      };
-
-      break;
+      return;
     }
+
+    // Don't create a new offer object if it's the same as the current one
+    if (CurrentOffer != null && CurrentOffer.Ign == ign && CurrentOffer.Quantity == quantity && CurrentOffer.Price == price)
+    {
+      return;
+    }
+
+    CurrentOffer = new LogbookOffer
+    {
+      Quantity = quantity,
+      Price = price,
+      Ign = ign
+    };
   }
 
   [DllImport("user32.dll", SetLastError = true)]
@@ -288,66 +277,36 @@ public class BuyAssistance
     // Debug Panel
     if (ImGui.CollapsingHeader("Debug Information"))
     {
-      string cleanedText = GetCleanClipboardText();
-      if (!string.IsNullOrEmpty(cleanedText))
+      var clipboardText = _cachedClipboardText;
+      if (!string.IsNullOrEmpty(clipboardText))
       {
-        ImGui.TextWrapped("Cleaned Text:");
+        ImGui.TextWrapped("Raw Clipboard Text:");
+        ImGui.TextWrapped(clipboardText);
+        ImGui.Separator();
+
+        var cleanedText = ParseOffer.CleanInput(clipboardText);
+        ImGui.TextWrapped("Cleaned Text (for parsing):");
         ImGui.TextWrapped(cleanedText);
         ImGui.Separator();
 
-        // Show regex matches
-        Regex regex = new Regex(@"(?:(\d+)\s*(?:x|stock|pcs?|pieces?|units?)|(?:x|stock|pcs?|pieces?|units?)\s*(\d+))\s*.*?(?:Black\s+Scythe|Scythe\s+Black).*?(?:(\d+)\s*(?:c|chaos|С|:chaos:)|(?:c|chaos|С|:chaos:)\s*(\d+))", RegexOptions.IgnoreCase);
-        MatchCollection matches = regex.Matches(cleanedText);
-
-        ImGui.Text($"Found {matches.Count} matches");
-        for (int i = 0; i < matches.Count; i++)
-        {
-          var match = matches[i];
-          ImGui.Text($"Match {i + 1}:");
-          ImGui.Indent(20);
-          ImGui.Text($"Full match: {match.Value}");
-          ImGui.Text($"Quantity (Group 1): {match.Groups[1].Value}");
-          ImGui.Text($"Quantity (Group 2): {match.Groups[2].Value}");
-          ImGui.Text($"Price (Group 3): {match.Groups[3].Value}");
-          ImGui.Text($"Price (Group 4): {match.Groups[4].Value}");
-          ImGui.Unindent(20);
-        }
-        ImGui.Separator();
-
-        // Show IGN detection
-        ImGui.Text("IGN Detection:");
+        ImGui.Text("Parsing Results:");
         ImGui.Indent(20);
-        Regex nameRegex = new Regex(@"IGN:?\s*(.*?)(?:\s|$)", RegexOptions.IgnoreCase);
-        Match nameMatch = nameRegex.Match(cleanedText);
-
-        if (nameMatch.Success)
+        var (ign, quantity, price) = ParseOffer.ExtractOffer(clipboardText);
+        if (!string.IsNullOrEmpty(ign))
         {
-          ImGui.Text($"Found IGN via pattern: {nameMatch.Groups[1].Value.Trim()}");
+          ImGui.Text($"IGN: {ign}");
+          ImGui.Text($"Quantity: {quantity}");
+          ImGui.Text($"Price: {price}");
         }
         else
         {
-          ImGui.Text("No IGN found via pattern, trying fallback...");
-          var words = cleanedText.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-          bool foundIgn = false;
-          foreach (var word in words.Reverse())
-          {
-            if (word.Contains("@") || (word.Length >= 3 && !word.Any(char.IsDigit)))
-            {
-              ImGui.Text($"Found potential IGN via fallback: {word.Trim().Replace("@", "")}");
-              foundIgn = true;
-              break;
-            }
-          }
-          if (!foundIgn)
-          {
-            ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), "No IGN found in text!");
-          }
+          ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), "Could not parse offer from text.");
         }
         ImGui.Unindent(20);
       }
       else
       {
-        ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), "No text in clipboard or text doesn't contain 'Black' or 'Scythe'");
+        ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), "No relevant offer text in clipboard.");
       }
     }
 
