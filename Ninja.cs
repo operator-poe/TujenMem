@@ -12,6 +12,99 @@ using System.Text.RegularExpressions;
 
 namespace TujenMem;
 
+public class NinjaItem
+{
+    public string Name { get; set; }
+    public float ChaosValue { get; set; }
+
+    public NinjaItem(string name, float chaosValue)
+    {
+        Name = name;
+        ChaosValue = chaosValue;
+    }
+}
+
+public class NinjaItemMap : NinjaItem
+{
+    public int Tier { get; set; }
+    public bool Influenced { get; set; }
+
+    public bool Unique { get; set; }
+
+    public NinjaItemMap(string name, float chaosValue, int tier, bool unique) : base(name, chaosValue)
+    {
+        Tier = tier;
+        Unique = unique;
+    }
+}
+
+public class NinjaItemGem : NinjaItem
+{
+    public int Level { get; set; }
+    public int Quality { get; set; }
+
+    public bool SpecialSupport { get; set; }
+    public bool Corrupted { get; set; }
+
+    public NinjaItemGem(string name, float chaosValue, int level, int quality, bool specialSupport, bool corrupted) : base(name, chaosValue)
+    {
+        Level = level;
+        Quality = quality;
+        SpecialSupport = specialSupport;
+        Corrupted = corrupted;
+    }
+}
+
+public class NinjaItemClusterJewel : NinjaItem
+{
+    public int ItemLevel { get; set; }
+    public int PassiveSkills { get; set; }
+    public string BaseType { get; set; }
+
+    public NinjaItemClusterJewel(string name, float chaosValue, int itemLevel, int passiveSkills, string baseType) : base(name, chaosValue)
+    {
+        ItemLevel = itemLevel;
+        PassiveSkills = passiveSkills;
+        BaseType = baseType;
+    }
+}
+
+public class JSONCurrencyLine
+{
+    public string CurrencyTypeName { get; set; }
+    public float ChaosEquivalent { get; set; }
+}
+
+public class JSONItemLine
+{
+    public string Name { get; set; }
+    public float ChaosValue { get; set; }
+}
+
+public class JSONItemLineMap : JSONItemLine
+{
+    public int MapTier { get; set; }
+    public int ItemClass { get; set; }
+}
+
+public class JSONItemLineGem : JSONItemLine
+{
+    public int GemLevel { get; set; }
+    public int GemQuality { get; set; }
+    public bool Corrupted { get; set; }
+}
+
+public class JSONItemLineClusteJewel : JSONItemLine
+{
+    public int LevelRequired { get; set; }
+    public string Variant { get; set; }
+    public string BaseType { get; set; }
+}
+
+public class JSONFile<T>
+{
+    public List<T> Lines { get; set; }
+}
 
 public enum DownloadType
 {

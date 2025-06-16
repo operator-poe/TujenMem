@@ -1,6 +1,7 @@
-using System.Collections;
 using System.Linq;
+using ExileCore;
 using ExileCore.Shared;
+using ExileCore.Shared.Helpers;
 
 namespace TujenMem;
 
@@ -44,6 +45,10 @@ public class HaggleProcess
     await TaskUtils.NextFrame();
     if (!TujenMem.Instance.Settings.DebugOnly)
     {
+      // Set cursor to first item
+      var position = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[0].GetClientRect().Center.ToVector2Num();
+      Input.SetCursorPos(position);
+
       await CurrentWindow.HaggleForItems();
     }
 

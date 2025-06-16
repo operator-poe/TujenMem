@@ -6,6 +6,7 @@ using ExileCore.PoEMemory.Elements.InventoryElements;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared;
 using ExileCore.Shared.Enums;
+using ItemFilterLibrary;
 using SharpDX;
 
 namespace TujenMem.PrepareLogbook;
@@ -14,7 +15,7 @@ public class ReRollable
 {
   public RectangleF GridPosition { get; set; } = RectangleF.Empty;
 
-  private NormalInventoryItem Slot
+  public NormalInventoryItem Slot
   {
     get
     {
@@ -28,7 +29,7 @@ public class ReRollable
     }
   }
 
-  protected Entity Item
+  public Entity Item
   {
     get
     {
@@ -105,6 +106,18 @@ public class ReRollable
     }
   }
 
+  public ItemData Data
+  {
+    get
+    {
+      if (Item == null)
+      {
+        return null;
+      }
+      return new ItemData(Item, TujenMem.Instance.GameController);
+    }
+  }
+
   public int? Quantity
   {
     get
@@ -163,6 +176,7 @@ public class ReRollable
       var mods = Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
       if (mods == null || mods.HumanStats == null)
       {
+        Log.Error("Mods is null");
         return null;
       }
       return mods.HumanStats.Select(x => x.ToLower()).ToList();
@@ -179,6 +193,8 @@ public class ReRollable
 public class Map : ReRollable
 {
   public int Quality { get; set; }
+  public int Tier { get; set; }
+  public int MoreScarabs { get; set; }
 }
 
 public class BlessValue

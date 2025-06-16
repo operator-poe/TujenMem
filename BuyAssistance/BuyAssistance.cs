@@ -26,20 +26,44 @@ public class BuyAssistance
     }
     clipboardText = clipboardText.Replace(":", "");
 
-    Regex regex = new Regex(@"(\d+x|x\d+)\s?.*?(Scythe|Black).*?\s+(\d+)\s?c", RegexOptions.IgnoreCase);
+    // More flexible regex pattern that handles various formats
+    Regex regex = new Regex(@"(?:(\d+)\s*(?:x|stock|pcs?|pieces?|units?)|(?:x|stock|pcs?|pieces?|units?)\s*(\d+))\s*.*?(?:Black\s+Scythe|Scythe\s+Black).*?(?:(\d+)\s*(?:c|chaos|С|:chaos:)|(?:c|chaos|С|:chaos:)\s*(\d+))", RegexOptions.IgnoreCase);
     MatchCollection matches = regex.Matches(clipboardText);
 
     foreach (Match match in matches)
     {
-      var quantity = match.Groups[1].Value.ToLower().Replace("x", "");
-      var price = match.Groups[3].Value.ToLower().Replace("c", "");
+      // Extract quantity - check both possible capture groups
+      var quantity = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
 
-      Regex nameRegex = new Regex(@"IGN:?\s?(.*)", RegexOptions.IgnoreCase);
+      // Extract price - check both possible capture groups
+      var price = match.Groups[3].Success ? match.Groups[3].Value : match.Groups[4].Value;
+
+      // Extract IGN - try multiple patterns
+      string ign = null;
+
+      // Try "IGN:" pattern first
+      Regex nameRegex = new Regex(@"IGN:?\s*(.*?)(?:\s|$)", RegexOptions.IgnoreCase);
       Match nameMatch = nameRegex.Match(clipboardText);
 
-      var ign = nameMatch.Success ? nameMatch.Groups[1].Value : clipboardText.Split(' ').Last();
-      ign = ign.Trim().Replace("@", "");
-      if (LastOffer?.Ign == ign)
+      if (nameMatch.Success)
+      {
+        ign = nameMatch.Groups[1].Value.Trim();
+      }
+      else
+      {
+        // Try to find the last word that looks like an IGN (no spaces, might contain @)
+        var words = clipboardText.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var word in words.Reverse())
+        {
+          if (word.Contains("@") || (word.Length >= 3 && !word.Any(char.IsDigit)))
+          {
+            ign = word.Trim().Replace("@", "");
+            break;
+          }
+        }
+      }
+
+      if (string.IsNullOrEmpty(ign) || LastOffer?.Ign == ign)
       {
         return;
       }

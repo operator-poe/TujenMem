@@ -30,7 +30,8 @@ public class Inventory
         Logbooks.Add(new Map
         {
           GridPosition = inventoryItems.ElementAt(i).GetClientRect(),
-          Quality = inventoryItems.ElementAt(i).Item.GetComponent<Quality>()?.ItemQuality ?? 0
+          Quality = inventoryItems.ElementAt(i).Item.GetComponent<Quality>()?.ItemQuality ?? 0,
+          Tier = inventoryItems.ElementAt(i).Item.GetComponent<ExileCore.PoEMemory.Components.Map>()?.Tier ?? 0,
         });
       }
     }

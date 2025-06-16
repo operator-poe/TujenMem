@@ -2,9 +2,7 @@ using System.Collections.Generic;
 using ExileCore;
 using ExileCore.PoEMemory.Elements.InventoryElements;
 using ExileCore.Shared;
-using System.Collections;
 using System;
-using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.Linq;
 using ExileCore.Shared.Helpers;
@@ -307,20 +305,28 @@ public class HaggleProcessWindow
           if (item is HaggleItemGem)
           {
             var gem = item as HaggleItemGem;
-            ninjaItem = Ninja.Items[item.Name].Find(x =>
+            if (gem.Level == 1 && gem.Quality == 20)
             {
-              if (x is NinjaItemGem)
-              {
-                var ninjaGem = x as NinjaItemGem;
-                return ninjaGem.ChaosValue > 10
-                  && ninjaGem.Level == gem.Level
-                  && gem.Corrupted == ninjaGem.Corrupted
-                  && (gem.Level > 1 || ninjaGem.SpecialSupport)
-                  && (ninjaGem.Quality == gem.Quality || ninjaGem.SpecialSupport);
-              }
-              return false;
+              // Apply price of gemcutters prism
+              ninjaItem = Ninja.Items["Gemcutter's Prism"].First();
             }
-            );
+            else
+            {
+              ninjaItem = Ninja.Items[item.Name].Find(x =>
+              {
+                if (x is NinjaItemGem)
+                {
+                  var ninjaGem = x as NinjaItemGem;
+                  return ninjaGem.ChaosValue > 10
+                    && ninjaGem.Level == gem.Level
+                    && gem.Corrupted == ninjaGem.Corrupted
+                    && (gem.Level > 1 || ninjaGem.SpecialSupport)
+                    && (ninjaGem.Quality == gem.Quality || ninjaGem.SpecialSupport);
+                }
+                return false;
+              }
+                );
+            }
           }
           else if (item is HaggleItemClusterJewel)
           {
@@ -337,11 +343,32 @@ public class HaggleProcessWindow
               return false;
             }
             );
+            if (item.Name.Contains("Reservation") && cluster.ItemLevel >= 84 && cluster.PassiveSkills > 2)
+            {
+              ninjaItem = new NinjaItemClusterJewel(
+                 item.Name,
+                  300,
+                 cluster.ItemLevel,
+                 cluster.PassiveSkills,
+                 cluster.BaseType
+              );
+            }
+            if (cluster.ItemLevel >= 84 && cluster.PassiveSkills >= 12)
+            {
+              ninjaItem = new NinjaItemClusterJewel(
+                 item.Name,
+                  100,
+                 cluster.ItemLevel,
+                 cluster.PassiveSkills,
+                 cluster.BaseType
+              );
+            }
           }
           if (ninjaItem != null)
           {
             item.Value = ninjaItem.ChaosValue * item.Amount;
           }
+
         }
         else
         {

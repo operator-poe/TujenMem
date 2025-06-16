@@ -1,7 +1,11 @@
 using System.Collections;
+using ItemFilterLibrary;
 using System.Collections.Generic;
 using ExileCore;
+using ExileCore.PoEMemory.Elements.InventoryElements;
 using ExileCore.Shared;
+using ExileCore.Shared.Enums;
+using SharpDX;
 
 namespace TujenMem.PrepareLogbook;
 
@@ -84,9 +88,12 @@ public class Stash
     }
   }
 
-  public Stash()
+  public Stash(bool refresh = true)
   {
-    RefreshCurrencies();
+    if (refresh)
+    {
+      RefreshCurrencies();
+    }
   }
 
   public async SyncTask<bool> CleanUp()
@@ -138,5 +145,43 @@ public class Stash
     }
   }
 
+  public List<NormalInventoryItem> GetUnidentifiedUniques()
+  {
+    var stash = TujenMem.Instance.GameController.IngameState.IngameUi.StashElement;
+    if (stash == null || !stash.IsVisible)
+    {
+      DebugWindow.LogError("Stash is not open");
+    }
 
+    var unidentifiedUniques = new List<NormalInventoryItem>();
+    Log.Debug("Parsing stash");
+    var cnt = stash?.VisibleStash?.VisibleInventoryItems?.Count ?? 0;
+    for (int i = 0; i < cnt; i++)
+    {
+      var Item = stash.VisibleStash.VisibleInventoryItems[i];
+      Log.Debug("Parsing item " + i + "/" + cnt);
+
+      var id = Item.Item.GetComponent<ExileCore.PoEMemory.Components.Mods>()?.Identified ?? true;
+      if (!id)
+      {
+        unidentifiedUniques.Add(Item);
+      }
+    }
+    // order by x and y
+    cnt = unidentifiedUniques.Count;
+    var x = 0;
+    unidentifiedUniques.Sort((a, b) =>
+    {
+      Log.Debug("Parsing item " + x + "/" + cnt);
+
+      var aRect = a.GetClientRect();
+      var bRect = b.GetClientRect();
+      if (aRect.X == bRect.X)
+      {
+        return aRect.Y.CompareTo(bRect.Y);
+      }
+      return aRect.X.CompareTo(bRect.X);
+    });
+    return unidentifiedUniques;
+  }
 }

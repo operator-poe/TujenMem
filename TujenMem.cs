@@ -40,6 +40,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Settings.HotKeySettings.StopHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StopHotKey); };
         Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey);
         Settings.HotKeySettings.RollAndBlessHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey); };
+        Input.RegisterKey(Settings.HotKeySettings.IdentifyHotKey);
+        Settings.HotKeySettings.IdentifyHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.IdentifyHotKey); };
 
         Ninja.CheckIntegrity();
         Task.Run(Ninja.Parse);
@@ -79,6 +81,20 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             {
                 Log.Debug("Starting Roll and Bless Coroutine");
                 Scheduler.AddTask(PrepareLogbook.Runner.RollAndBlessLogbooksCoroutine(), PrepareLogbook.Runner.CoroutineNameRollAndBless);
+            }
+            else
+            {
+                Log.Debug("Stopping Roll and Bless Coroutine");
+                HaggleState = HaggleState.Cancelling;
+            }
+        }
+        if (Settings.HotKeySettings.IdentifyHotKey.PressedOnce())
+        {
+            Log.Debug("Identify Items Hotkey Pressed");
+            if (Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless + "_Identify") == null)
+            {
+                Log.Debug("Starting Identify Items Coroutine");
+                Scheduler.AddTask(PrepareLogbook.Runner.IdentifyItemsInStash(), PrepareLogbook.Runner.CoroutineNameRollAndBless + "_Identify");
             }
             else
             {

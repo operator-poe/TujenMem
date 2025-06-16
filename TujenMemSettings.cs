@@ -387,6 +387,7 @@ public class HotKeySettings
     public HotkeyNode StartHotKey { get; set; } = new HotkeyNode(Keys.F1);
     public HotkeyNode StopHotKey { get; set; } = new HotkeyNode(Keys.Delete);
     public HotkeyNode RollAndBlessHotKey { get; set; } = new HotkeyNode(Keys.F4);
+    public HotkeyNode IdentifyHotKey { get; set; } = new HotkeyNode(Keys.F9);
 }
 
 [Submenu(CollapsedByDefault = true)]
@@ -559,8 +560,14 @@ public class PrepareLogbookSettings
     public CustomNode AreaOrderNode { get; set; }
 
     public RangeNode<int> MinQuantity { get; set; } = new RangeNode<int>(60, 1, 120);
+    public RangeNode<int> MinScarabsT17 { get; set; } = new RangeNode<int>(100, 0, 200);
+    public RangeNode<int> MinMapsT17 { get; set; } = new RangeNode<int>(100, 0, 200);
+    public RangeNode<int> MinCurrencyT17 { get; set; } = new RangeNode<int>(100, 0, 200);
+    public RangeNode<int> MinPackSizeT17 { get; set; } = new RangeNode<int>(50, 0, 100);
+    public ToggleNode MinT17OrMode { get; set; } = new ToggleNode(true);
     public TextNode ModsBlackList { get; set; } = new TextNode("regenerate");
     public ToggleNode UseChaos { get; set; } = new ToggleNode(true);
+    public ToggleNode UseChiselsForMaps { get; set; } = new ToggleNode(false);
 
     public ToggleNode Bless_ExplosiveRange { get; set; } = new ToggleNode(true);
     public RangeNode<int> Bless_ExplosiveRange_Min { get; set; } = new RangeNode<int>(40, 20, 50);

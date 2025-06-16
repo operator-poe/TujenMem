@@ -67,7 +67,7 @@ public static class GwennenRunner
     HashSet<string> baseTypes = new HashSet<string>(Instance.Settings.Gwennen.BaseList);
     while (HasEnoughStock)
     {
-      await InputAsync.WaitX(6);
+      await InputAsync.WaitX(3);
       await ProcessWindow(baseTypes);
       await InputAsync.Wait();
 
@@ -106,13 +106,20 @@ public static class GwennenRunner
         await InputAsync.Wait(() => Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems.Count < itemCount, 500);
         if (Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems.Count == itemCount)
         {
-          Error.AddAndShow("Error", "Item could not be bought, probably not enough inventory space");
-          return false;
+          await DeleteNonUniquesInInventory();
+          await InputAsync.KeyDown(Keys.ControlKey);
+          await InputAsync.ClickElement(item.GetClientRect());
+          await InputAsync.KeyUp(Keys.ControlKey);
+          await InputAsync.Wait(() => Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems.Count < itemCount, 500);
+          if (Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems.Count == itemCount)
+          {
+            Error.AddAndShow("Error", "Item could not be bought, probably not enough inventory space");
+            return false;
+          }
         }
         await InputAsync.Wait();
       }
     }
-    await DeleteNonUniquesInInventory();
     return true;
   }
 
@@ -127,7 +134,6 @@ public static class GwennenRunner
       {
         Log.Debug($"Deleting {item.Item.Path}");
         await InputAsync.ClickElement(item.GetClientRect());
-        await InputAsync.Wait(50);
         if (FreshRun)
         {
           await Chat.Send(["/destroy"]);
@@ -137,7 +143,6 @@ public static class GwennenRunner
         {
           await Chat.Repeat("/destroy");
         }
-        await InputAsync.Wait(50);
         Log.Debug("Deleted");
       }
     }
