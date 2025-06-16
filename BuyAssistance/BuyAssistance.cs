@@ -13,6 +13,7 @@ using System.Globalization;
 using System.Text;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace TujenMem.BuyAssistance;
 
@@ -220,16 +221,14 @@ public class BuyAssistance
   }
 
   public static string _extractMoneyFromStashCoroutineName = "TujenMem_ExtractMoneyFromStashCoroutine";
-  private static IEnumerator ExtractMoneyFromStash()
+  public static async SyncTask<bool> ExtractMoneyFromStash()
   {
     // Focus on PoE
     if (!TujenMem.Instance.GameController.Window.IsForeground())
     {
-      ForceFocus("Path of Exile");
+      await Util.ForceFocusAsync();
     }
-    yield return new WaitFunctionTimed(TujenMem.Instance.GameController.Window.IsForeground, true, 1000, "Window could not be focused");
-
-    var d = PrepareLogbook.Inventory.DivineCount;
+    await InputAsync.Wait(() => TujenMem.Instance.GameController.Window.IsForeground(), 1000, "Window could not be focused");
 
     var stash = new Stash();
     while (PrepareLogbook.Inventory.DivineCount < CurrentOffer.Divines)
@@ -237,39 +236,42 @@ public class BuyAssistance
       var rest = CurrentOffer.Divines - PrepareLogbook.Inventory.DivineCount;
       if (rest > 10)
       {
-        yield return stash.Divine.GetStack();
-        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+        await stash.Divine.GetStack();
+        await InputAsync.WaitX(5);
       }
       else
       {
         var p = PrepareLogbook.Inventory.NextFreePosition;
-        yield return stash.Divine.GetFraction(rest);
-        Input.SetCursorPos(p);
-        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
-        Input.Click(MouseButtons.Left);
-        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+        await stash.Divine.GetFraction(rest);
+        await InputAsync.MoveMouseToElement(p);
+        await InputAsync.WaitX(5);
+        await InputAsync.Click(MouseButtons.Left);
+        await InputAsync.WaitX(5);
       }
-      yield return new WaitTime(50);
+      await InputAsync.Wait();
     }
+
     while (PrepareLogbook.Inventory.ChaosCount < CurrentOffer.Chaos)
     {
       var rest = CurrentOffer.Chaos - PrepareLogbook.Inventory.ChaosCount;
       if (rest > 20)
       {
-        yield return stash.Chaos.GetStack();
-        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+        await stash.Chaos.GetStack();
+        await InputAsync.WaitX(5);
       }
       else
       {
         var p = PrepareLogbook.Inventory.NextFreePosition;
-        yield return stash.Chaos.GetFraction(rest);
-        Input.SetCursorPos(p);
-        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
-        Input.Click(MouseButtons.Left);
-        yield return new WaitTime(TujenMem.Instance.Settings.HoverItemDelay);
+        await stash.Chaos.GetFraction(rest);
+        await InputAsync.MoveMouseToElement(p);
+        await InputAsync.WaitX(5);
+        await InputAsync.Click(MouseButtons.Left);
+        await InputAsync.WaitX(5);
       }
-      yield return new WaitTime(50);
+      await InputAsync.Wait();
     }
+
+    return await stash.CleanUp();
   }
 
   public static void Render()
@@ -279,7 +281,7 @@ public class BuyAssistance
     TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableBuyAssistance.Value = show;
 
     // Debug Panel
-    if (ImGui.CollapsingHeader("Debug Information"))
+    if (ImGui.CollapsingHeader("Debug Information", ImGuiTreeNodeFlags.CollapsingHeader))
     {
       var clipboardText = _cachedClipboardText;
       if (!string.IsNullOrEmpty(clipboardText))
@@ -363,10 +365,7 @@ public class BuyAssistance
       ImGui.TableNextColumn();
       if (ImGui.Button("$$$"))
       {
-        if (Core.ParallelRunner.FindByName(_extractMoneyFromStashCoroutineName) == null)
-        {
-          Core.ParallelRunner.Run(new Coroutine(ExtractMoneyFromStash(), TujenMem.Instance, _extractMoneyFromStashCoroutineName));
-        }
+        TujenMem.Instance.Scheduler.AddTask(ExtractMoneyFromStash(), _extractMoneyFromStashCoroutineName);
       }
 
       ImGui.TableNextColumn();
