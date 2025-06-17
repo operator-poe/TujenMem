@@ -239,12 +239,27 @@ public class HaggleProcessWindow
             return true;
           }
         }, 1000);
-        var ttBody = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1);
-        if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip == null
-          || ttBody == null
-          || TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1, ttBody.Children.Count - 1, 1) == null)
+
+        var ttBody = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip?.GetChildFromIndices(0, 1);
+        try
         {
-          Error.Add("Error while reading tooltip", $"Tooltip structure is unexpected. Item: {item.Name}");
+          if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip == null
+            || ttBody == null
+            || TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1, ttBody.Children.Count - 1, 1) == null)
+          {
+            Error.Add("Error while reading tooltip", $"Tooltip structure is unexpected. Item: {item.Name}");
+            Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
+            Error.Show();
+            return false;
+          }
+        }
+        catch (Exception e)
+        {
+          if (attempts < 3)
+          {
+            continue;
+          }
+          Error.Add("Error while reading tooltip", $"Failed to read tooltip structure: {e.Message}\nItem: {item.Name}");
           Error.Add("Tooltip Structure", Error.VisualizeElementTree(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip));
           Error.Show();
           return false;
