@@ -598,10 +598,67 @@ public class PrepareLogbookSettings
 [Submenu(CollapsedByDefault = true)]
 public class SillyOrExperimenalFeatures
 {
+    public SillyOrExperimenalFeatures()
+    {
+        var manualItemsInput = "";
+        var manualItemsSelected = "";
+        StatisticsManualItemsNode = new CustomNode
+        {
+            DrawDelegate = () =>
+            {
+                if (ImGui.TreeNode("Statistics Manual Items"))
+                {
+                    ImGui.InputTextWithHint("##ManualItemsInput", "Item Name", ref manualItemsInput, 100);
+                    ImGui.SameLine();
+                    if (ImGui.Button("Add"))
+                    {
+                        StatisticsManualItems.Add(manualItemsInput);
+                        manualItemsInput = "";
+                    }
+
+                    ImGui.BeginChild("##ManualItemsList", new System.Numerics.Vector2(0, 150), ImGuiChildFlags.Border);
+                    foreach (var s in StatisticsManualItems)
+                    {
+                        if (ImGui.Selectable(s, s == manualItemsSelected))
+                        {
+                            manualItemsSelected = s;
+                        }
+                    }
+                    ImGui.EndChild();
+                    if (!string.IsNullOrEmpty(manualItemsSelected))
+                    {
+                        ImGui.Text("Selected: " + manualItemsSelected);
+                        ImGui.SameLine();
+                        if (ImGui.Button("Remove"))
+                        {
+                            StatisticsManualItems.Remove(manualItemsSelected);
+                            manualItemsSelected = "";
+                        }
+                    }
+                    ImGui.TreePop();
+                }
+            }
+        };
+    }
+
     [Menu("Enable Buy Assistance", "You probably don't want to use this.")]
     public ToggleNode EnableBuyAssistance { get; set; } = new ToggleNode(false);
     [Menu("Enable Statistics", "Output at: Plugins/(Temp or Compiled)/Data/Statistics.csv")]
     public ToggleNode EnableStatistics { get; set; } = new ToggleNode(false);
+
+    [Menu("Show Statistics Window")]
+    public ToggleNode ShowStatisticsWindow { get; set; } = new ToggleNode(false);
+
+    [Menu("Display Mode", "Which items to show in the statistics window.")]
+    public ListNode StatisticsDisplayMode { get; set; } = new ListNode { Values = new List<string> { "Manual", "Top 30 Valuable", "Top 30 Rarest", "All" }, Value = "Manual" };
+
+    [Menu("Min Chaos Value for Rarest", "Minimum chaos value for an item to appear in the 'Top 30 Rarest' list.")]
+    public RangeNode<float> StatisticsRarestMinValue { get; set; } = new RangeNode<float>(0.1f, 0f, 100f);
+
+    [JsonIgnore]
+    public CustomNode StatisticsManualItemsNode { get; set; }
+    public List<string> StatisticsManualItems { get; set; } = new List<string> { "Chaos Orb", "Divine Orb" };
+
 
     [Menu("Enable Vorana Warning", "THIS IS REALLY SILLY. DO NOT ENABLE THIS UNLESS YOU WANT TO BE ANNOYED.")]
     public ToggleNode EnableVoranaWarning { get; set; } = new ToggleNode(false);

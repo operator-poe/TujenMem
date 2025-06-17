@@ -474,6 +474,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Scheduler.Run();
         Error.Render();
 
+        StatisticsUI.Render(Settings.SillyOrExperimenalFeatures.ShowStatisticsWindow);
+
         if (Settings.ShowDebugWindow && (HaggleState is HaggleState.Running || Settings.DebugOnly))
         {
             var show = Settings.ShowDebugWindow.Value;
