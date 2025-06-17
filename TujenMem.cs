@@ -66,7 +66,12 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             {
                 Log.Debug("Starting Haggle Coroutine");
                 HaggleState = HaggleState.StartUp;
-                Scheduler.AddTask(HaggleCoroutine(), _coroutineName);
+                Scheduler.AddRestartableTask(
+                    () => HaggleCoroutine(),
+                    "HaggleCoroutine",
+                    () => StopAllRoutines(skipSchedulerStop: true),
+                    maxRetries: 3
+                );
             }
             else
             {
@@ -434,10 +439,13 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         return true;
     }
 
-    public void StopAllRoutines()
+    public void StopAllRoutines(bool skipSchedulerStop = false)
     {
         Log.Debug("Stopping all routines");
-        Scheduler.Stop();
+        if (!skipSchedulerStop)
+        {
+            Scheduler.Stop();
+        }
         Scheduler.Clear();
         InputAsync.LOCK_CONTROLLER = false;
         InputAsync.IControllerEnd();
@@ -600,7 +608,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             var screenHeight = GameController.Window.GetWindowRectangle().Height;
 
             // measure text and draw in the middle 
-            var txt = "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+            var txt = "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
             txt += txt;
             txt += txt;
             var textSize = Graphics.MeasureText(txt, 20);
