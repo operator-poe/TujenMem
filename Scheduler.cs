@@ -4,6 +4,7 @@ using System;
 using SharpDX;
 using ExileCore;
 using System.Windows.Forms;
+using System.Threading;
 
 namespace TujenMem;
 
@@ -20,8 +21,8 @@ public class RestartableTask
   public Vector2 LastMousePosition { get; private set; }
   public Action OnInterrupt { get; }
   private bool _isPaused = false;
-  private SyncTask<bool> _stuckDetectionTask;
-  public ref SyncTask<bool> StuckDetectionTask => ref _stuckDetectionTask;
+  private Thread _stuckDetectionThread;
+  private bool _shouldStopThread = false;
 
   public RestartableTask(Func<SyncTask<bool>> taskFactory, string name, Action onInterrupt, int maxRetries = 3)
   {
@@ -33,43 +34,48 @@ public class RestartableTask
     LastMouseMove = DateTime.Now;
     LastMousePosition = Input.MousePosition;
     OnInterrupt = onInterrupt;
-    _stuckDetectionTask = StuckDetection();
+    StartStuckDetection();
   }
 
-  private async SyncTask<bool> StuckDetection()
+  private void StartStuckDetection()
   {
-    while (!IsCompleted && !IsInterrupted)
+    _shouldStopThread = false;
+    _stuckDetectionThread = new Thread(() =>
     {
-      if (!_isPaused)
+      while (!_shouldStopThread && !IsCompleted && !IsInterrupted)
       {
-        var currentPos = Input.MousePosition;
-        if (!currentPos.Equals(LastMousePosition))
+        if (!_isPaused)
         {
-          LastMouseMove = DateTime.Now;
-          LastMousePosition = currentPos;
-        }
-        else if ((DateTime.Now - LastMouseMove).TotalSeconds > 5)
-        {
-          Log.Error($"Task {Name} appears to be stuck. Attempting restart...");
-          if (CanRetry())
+          var currentPos = Input.MousePosition;
+          if (!currentPos.Equals(LastMousePosition))
           {
-            MarkInterrupted();
-            IncrementRetries();
-            Reset();
-            Task = TaskFactory();
-            Log.Debug($"Restarted task {Name} (attempt {CurrentRetries}/{MaxRetries})");
+            LastMouseMove = DateTime.Now;
+            LastMousePosition = currentPos;
           }
-          else
+          else if ((DateTime.Now - LastMouseMove).TotalSeconds > 5)
           {
-            Log.Error($"Task {Name} exceeded maximum retry attempts. Stopping.");
-            MarkInterrupted();
-            return false;
+            Log.Error($"Task {Name} appears to be stuck. Attempting restart...");
+            if (CanRetry())
+            {
+              MarkInterrupted();
+              IncrementRetries();
+              Reset();
+              Task = TaskFactory();
+              Log.Debug($"Restarted task {Name} (attempt {CurrentRetries}/{MaxRetries})");
+            }
+            else
+            {
+              Log.Error($"Task {Name} exceeded maximum retry attempts. Stopping.");
+              MarkInterrupted();
+              break;
+            }
           }
         }
+        Thread.Sleep(100); // Check every 100ms
       }
-      await InputAsync.Wait();
-    }
-    return true;
+    });
+    _stuckDetectionThread.IsBackground = true;
+    _stuckDetectionThread.Start();
   }
 
   public void PauseStuckDetection()
@@ -88,12 +94,20 @@ public class RestartableTask
   public void MarkCompleted()
   {
     IsCompleted = true;
+    StopStuckDetection();
   }
 
   public void MarkInterrupted()
   {
     IsInterrupted = true;
+    StopStuckDetection();
     OnInterrupt?.Invoke();
+  }
+
+  private void StopStuckDetection()
+  {
+    _shouldStopThread = true;
+    _stuckDetectionThread?.Join(1000); // Wait up to 1 second for thread to finish
   }
 
   public bool CanRetry()
@@ -166,8 +180,6 @@ public class Scheduler
         CurrentRestartableTask = RestartableTasks.Dequeue();
         CurrentTask = CurrentRestartableTask.Task;
         Log.Debug($"Starting restartable task: {CurrentRestartableTask.Name}");
-        // Start the stuck detection task
-        TaskUtils.RunOrRestart(ref CurrentRestartableTask.StuckDetectionTask, () => null);
       }
       else if (Tasks.Count > 0)
       {

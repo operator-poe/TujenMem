@@ -13,6 +13,7 @@ namespace TujenMem;
 public class HaggleProcessWindow
 {
   public List<HaggleItem> Items { get; set; } = new();
+  public HaggleItem CurrentHagglingItem { get; private set; }
 
   private readonly string StatisticsWindowId;
 
@@ -225,10 +226,18 @@ public class HaggleProcessWindow
 
         await InputAsync.Wait(() =>
         {
-          var ttBody = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip?.GetChildFromIndices(0, 1);
-          return TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip != null
-            && ttBody != null
-            && TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1, ttBody.Children.Count - 1, 1) != null;
+          try
+          {
+            var ttBody = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip?.GetChildFromIndices(0, 1);
+            return TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip != null
+              && ttBody != null
+              && TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1, ttBody.Children.Count - 1, 1) != null;
+          }
+          catch (Exception e)
+          {
+            Log.Error($"Error while reading tooltip: {e}");
+            return true;
+          }
         }, 1000);
         var ttBody = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip.GetChildFromIndices(0, 1);
         if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.InventoryItems[i].Tooltip == null
@@ -305,7 +314,7 @@ public class HaggleProcessWindow
           if (item is HaggleItemGem)
           {
             var gem = item as HaggleItemGem;
-            if (gem.Level == 1 && gem.Quality == 20)
+            if (gem.Level == 1 && gem.Quality >= 20)
             {
               // Apply price of gemcutters prism
               ninjaItem = Ninja.Items["Gemcutter's Prism"].First();
@@ -413,6 +422,7 @@ public class HaggleProcessWindow
         continue;
       }
 
+      CurrentHagglingItem = item;
       var position = item.Position;
       await InputAsync.ClickElement(position);
 
@@ -457,6 +467,7 @@ public class HaggleProcessWindow
         await InputAsync.ClickElement(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect());
         await InputAsync.Wait();
       }
+      CurrentHagglingItem = null;
     }
     Log.Debug("Finished haggling for items");
     return true;

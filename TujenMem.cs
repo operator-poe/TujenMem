@@ -12,6 +12,7 @@ using ImGuiNET;
 using ExileCore.PoEMemory.Elements;
 using System.IO;
 using System.Media;
+using System;
 
 namespace TujenMem;
 
@@ -496,9 +497,21 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 {
                     try
                     {
+                        int currentRow = 0;
+                        float targetScrollY = 0;
+                        float rowHeight = ImGui.GetTextLineHeightWithSpacing();
+                        float windowHeight = ImGui.GetWindowHeight();
+                        float scrollMargin = rowHeight * 2; // 2 rows worth of margin
+
                         foreach (HaggleItem haggleItem in _process.CurrentWindow.Items)
                         {
                             ImGui.TableNextRow();
+                            if (haggleItem == _process.CurrentWindow.CurrentHagglingItem)
+                            {
+                                ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(new System.Numerics.Vector4(1, 0.5f, 0, 0.3f)));
+                                // Calculate target scroll position with margin
+                                targetScrollY = currentRow * rowHeight - scrollMargin;
+                            }
                             ImGui.TableNextColumn();
                             ImGui.Text(haggleItem.Name);
                             ImGui.TableNextColumn();
@@ -511,13 +524,25 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                             ImGui.Text(haggleItem.Price?.TotalValue().ToString(CultureInfo.InvariantCulture) + "c");
                             ImGui.TableNextColumn();
                             ImGui.Text(haggleItem.State.ToString());
+                            currentRow++;
+                        }
+
+                        // Apply smooth scrolling if we have a target
+                        if (targetScrollY > 0)
+                        {
+                            float currentScrollY = ImGui.GetScrollY();
+                            float maxScrollY = ImGui.GetScrollMaxY();
+                            float targetY = Math.Min(targetScrollY, maxScrollY);
+
+                            // Smooth scroll interpolation
+                            float newScrollY = currentScrollY + (targetY - currentScrollY) * 0.1f;
+                            ImGui.SetScrollY(newScrollY);
                         }
                     }
                     catch
                     {
                     }
                 }
-
 
                 ImGui.EndTable();
             }
