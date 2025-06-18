@@ -119,12 +119,13 @@ public class Runner
     }
 
     // Alch normal logbooks
+    var alchOrb = Stash.Binding.StackSize > Stash.Alchemy.StackSize ? Stash.Binding : Stash.Alchemy;
     foreach (var l in Inventory.Logbooks)
     {
       if (l.IsCorrupted) continue;
       if (l.Rarity == ItemRarity.Normal)
       {
-        await Stash.Alchemy.Use(l.Position);
+        await alchOrb.Use(l.Position);
         await InputAsync.WaitX(5);
       }
     }
@@ -155,8 +156,8 @@ public class Runner
         {
           await Stash.Scouring.Use(l.Position);
           await Stash.Scouring.Release();
-          await Stash.Alchemy.Use(l.Position);
-          await Stash.Alchemy.Release();
+          await alchOrb.Use(l.Position);
+          await alchOrb.Release();
         }
 
         await InputAsync.WaitX(5);

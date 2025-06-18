@@ -16,6 +16,7 @@ public class Stash
     "Scroll of Wisdom",
     "Orb of Scouring",
     "Orb of Alchemy",
+    "Orb of Binding",
     "Chaos Orb",
     "Blessed Orb",
     "Divine Orb",
@@ -45,6 +46,14 @@ public class Stash
     get
     {
       return Currencies["Orb of Alchemy"];
+    }
+  }
+
+  public Currency Binding
+  {
+    get
+    {
+      return Currencies["Orb of Binding"];
     }
   }
 
