@@ -71,6 +71,7 @@ public class HaggleItemAbyssJewel : HaggleItem
 
       using (var client = new HttpClient())
       {
+        client.Timeout = TimeSpan.FromSeconds(5);
         var response = await client.GetStringAsync(url);
         Log.Debug($"Response: {response}");
         var apiResponse = JsonConvert.DeserializeObject<PoepricesApiResponse>(response);
@@ -157,6 +158,7 @@ public class HaggleItemAbyssJewel : HaggleItem
 
       using (var client = new HttpClient())
       {
+        client.Timeout = TimeSpan.FromSeconds(5);
         client.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
         client.DefaultRequestHeaders.Add("Accept-Language", "de;q=0.5");
         client.DefaultRequestHeaders.Add("Cache-Control", "max-age=0");
@@ -195,11 +197,23 @@ public class HaggleItemAbyssJewel : HaggleItem
 
         var pattern = @"<tr class=""price_tr"">\s*<td class=""price_highlight"">([\d\.]+) ~ ([\d\.]+)</td>\s*<td class=""price_highlight"">(\w+)</td>";
         var match = Regex.Match(html, pattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var usedSpanPattern = false;
 
         if (!match.Success)
         {
-          Log.Error("Could not find price in poeprices.info HTML response.");
-          return false;
+          // Fallback: try to find price in span element when table is not present
+          Log.Debug("Table price pattern not found, trying span fallback pattern");
+          var spanPattern = @"<span class=""price_highlight"">([\d\.]+)\s+(\w+)</span>";
+          match = Regex.Match(html, spanPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+          usedSpanPattern = true;
+
+          if (!match.Success)
+          {
+            Log.Error("Could not find price in poeprices.info HTML response (neither table nor span pattern matched).");
+            return false;
+          }
+
+          Log.Debug("Found price using span fallback pattern");
         }
 
         var minPriceStr = match.Groups[1].Value;
@@ -210,7 +224,9 @@ public class HaggleItemAbyssJewel : HaggleItem
           return false;
         }
 
-        var currency = match.Groups[3].Value.ToLower();
+        // Currency is in group 3 for table pattern, group 2 for span pattern
+        var currencyGroupIndex = usedSpanPattern ? 2 : 3;
+        var currency = match.Groups[currencyGroupIndex].Value.ToLower();
 
         Log.Debug($"Parsed from website: {minPrice} {currency}");
 

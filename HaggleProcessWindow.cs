@@ -72,30 +72,30 @@ public class HaggleProcessWindow
 
         continue;
       }
-      else if (type == "Jewel" && baseItem.BaseName.Contains("Cluster"))
-      {
-        var baseCluster = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Base>();
-        var mods = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
-        var itemLevel = mods.ItemLevel;
-        var passives = int.Parse(Regex.Replace(mods.EnchantedStats[0], "[^0-9]", ""));
-        var name = mods.EnchantedStats[baseItem.BaseName.Contains("Small") ? 1 : 2].Replace("Added Small Passive Skills grant: ", "").Trim();
+      // else if (type == "Jewel" && baseItem.BaseName.Contains("Cluster"))
+      // {
+      //   var baseCluster = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Base>();
+      //   var mods = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
+      //   var itemLevel = mods.ItemLevel;
+      //   var passives = int.Parse(Regex.Replace(mods.EnchantedStats[0], "[^0-9]", ""));
+      //   var name = mods.EnchantedStats[baseItem.BaseName.Contains("Small") ? 1 : 2].Replace("Added Small Passive Skills grant: ", "").Trim();
 
-        Items.Add(new HaggleItemClusterJewel
-        {
-          Address = address,
-          Position = inventoryItem.GetClientRect(),
-          Name = name,
-          Type = type,
-          Amount = stack?.Size ?? 1,
-          Value = 0,
-          Price = null,
-          ItemLevel = itemLevel,
-          PassiveSkills = passives,
-          BaseType = baseCluster.Name
-        });
+      //   Items.Add(new HaggleItemClusterJewel
+      //   {
+      //     Address = address,
+      //     Position = inventoryItem.GetClientRect(),
+      //     Name = name,
+      //     Type = type,
+      //     Amount = stack?.Size ?? 1,
+      //     Value = 0,
+      //     Price = null,
+      //     ItemLevel = itemLevel,
+      //     PassiveSkills = passives,
+      //     BaseType = baseCluster.Name
+      //   });
 
-      }
-      else if (type == "AbyssJewel" && TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableJewelPriceEstimation)
+      // }
+      else if ((type == "Jewel" && baseItem.BaseName.Contains("Cluster") || type == "AbyssJewel") && TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableJewelPriceEstimation)
       {
         var mods = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
         var itemLevel = mods.ItemLevel;
@@ -351,33 +351,7 @@ public class HaggleProcessWindow
         if (Ninja.Items.ContainsKey(item.Name))
         {
           ninjaItem = Ninja.Items[item.Name].Find(x => x.ChaosValue > 0);
-          if (item is HaggleItemGem)
-          {
-            var gem = item as HaggleItemGem;
-            if (gem.Level == 1 && gem.Quality >= 20)
-            {
-              // Apply price of gemcutters prism
-              ninjaItem = Ninja.Items["Gemcutter's Prism"].First();
-            }
-            else
-            {
-              ninjaItem = Ninja.Items[item.Name].Find(x =>
-              {
-                if (x is NinjaItemGem)
-                {
-                  var ninjaGem = x as NinjaItemGem;
-                  return ninjaGem.ChaosValue > 10
-                    && ninjaGem.Level == gem.Level
-                    && gem.Corrupted == ninjaGem.Corrupted
-                    && (gem.Level > 1 || ninjaGem.SpecialSupport)
-                    && (ninjaGem.Quality == gem.Quality || ninjaGem.SpecialSupport);
-                }
-                return false;
-              }
-                );
-            }
-          }
-          else if (item is HaggleItemClusterJewel)
+          if (item is HaggleItemClusterJewel)
           {
             var cluster = item as HaggleItemClusterJewel;
             ninjaItem = Ninja.Items[item.Name].Find(x =>
@@ -413,6 +387,32 @@ public class HaggleProcessWindow
               );
             }
           }
+          else if (item is HaggleItemGem)
+          {
+            var gem = item as HaggleItemGem;
+            if (gem.Level == 1 && gem.Quality >= 20)
+            {
+              // Apply price of gemcutters prism
+              ninjaItem = Ninja.Items["Gemcutter's Prism"].First();
+            }
+            else
+            {
+              ninjaItem = Ninja.Items[item.Name].Find(x =>
+              {
+                if (x is NinjaItemGem)
+                {
+                  var ninjaGem = x as NinjaItemGem;
+                  return ninjaGem.ChaosValue > 10
+                    && ninjaGem.Level == gem.Level
+                    && gem.Corrupted == ninjaGem.Corrupted
+                    && (gem.Level > 1 || ninjaGem.SpecialSupport)
+                    && (ninjaGem.Quality == gem.Quality || ninjaGem.SpecialSupport);
+                }
+                return false;
+              }
+                );
+            }
+          }
           if (ninjaItem != null)
           {
             item.Value = ninjaItem.ChaosValue * item.Amount;
@@ -444,7 +444,6 @@ public class HaggleProcessWindow
             Log.Debug($"Price estimation for abyss jewel: {item.Name} is good: {item.Value}");
           }
         }
-
         else
         {
           Error.AddAndShow("Error while pricing item", $"There was no equivalent Ninja entry for {item.Name}.\nPlease check your item mappings and your Ninja settings.");
