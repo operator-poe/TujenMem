@@ -436,6 +436,7 @@ public class ArtifactValueSettings
     public RangeNode<float> ValueExceptional { get; set; } = new RangeNode<float>(0.060f, 0, 0.1f);
     [Menu("Buy items when value is > x% of it's price")]
     public RangeNode<float> ItemPriceMultiplier { get; set; } = new RangeNode<float>(0.7f, 0.0f, 1.0f);
+
 }
 
 
@@ -664,6 +665,10 @@ public class SillyOrExperimenalFeatures
     public ToggleNode EnableVoranaWarning { get; set; } = new ToggleNode(false);
     [Menu("Enable Vorana Warning Sound", "THIS IS REALLY SILLY. DO NOT ENABLE THIS UNLESS YOU WANT TO BE ANNOYED.")]
     public ToggleNode EnableVoranaWarningSound { get; set; } = new ToggleNode(false);
+    [Menu("Enable Jewel Price Estimation", "Enable automatic price estimation for jewels using poeprices.info API")]
+    public ToggleNode EnableJewelPriceEstimation { get; set; } = new ToggleNode(false);
+    [Menu("Jewel Chaos Threshold", "Minimum chaos value for jewels to be considered for price estimation")]
+    public RangeNode<int> JewelChaosThreshold { get; set; } = new RangeNode<int>(10, 0, 1000);
 }
 
 

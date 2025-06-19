@@ -67,12 +67,13 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             {
                 Log.Debug("Starting Haggle Coroutine");
                 HaggleState = HaggleState.StartUp;
-                Scheduler.AddRestartableTask(
-                    () => HaggleCoroutine(),
-                    "HaggleCoroutine",
-                    () => StopAllRoutines(skipSchedulerStop: true),
-                    maxRetries: 3
-                );
+                // Scheduler.AddRestartableTask(
+                //     () => HaggleCoroutine(),
+                //     "HaggleCoroutine",
+                //     () => StopAllRoutines(skipSchedulerStop: true),
+                //     maxRetries: 3
+                // );
+                Scheduler.AddTask(HaggleCoroutine(), "HaggleCoroutine");
             }
             else
             {
@@ -476,7 +477,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 
         StatisticsUI.Render(Settings.SillyOrExperimenalFeatures.ShowStatisticsWindow);
 
-        if (Settings.ShowDebugWindow && (HaggleState is HaggleState.Running || Settings.DebugOnly))
+        if (Settings.ShowDebugWindow && (HaggleState is HaggleState.Running || Settings.DebugOnly) && GameController.IngameState.IngameUi.HaggleWindow is { IsVisible: true })
         {
             var show = Settings.ShowDebugWindow.Value;
             // Set next window size
@@ -521,9 +522,16 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                             ImGui.TableNextColumn();
                             ImGui.Text(haggleItem.Amount.ToString());
                             ImGui.TableNextColumn();
-                            ImGui.Text(haggleItem.Value.ToString(CultureInfo.InvariantCulture) + "c");
+                            if (haggleItem.ActualValue > 0)
+                            {
+                                ImGui.Text(Math.Round(haggleItem.ActualValue, 2).ToString(CultureInfo.InvariantCulture) + "c");
+                            }
+                            else
+                            {
+                                ImGui.Text(Math.Round(haggleItem.Value, 2).ToString(CultureInfo.InvariantCulture) + "c");
+                            }
                             ImGui.TableNextColumn();
-                            ImGui.Text(haggleItem.Price?.TotalValue().ToString(CultureInfo.InvariantCulture) + "c");
+                            ImGui.Text(Math.Round(haggleItem.Price?.TotalValue() ?? 0, 2).ToString(CultureInfo.InvariantCulture) + "c");
                             ImGui.TableNextColumn();
                             ImGui.Text(haggleItem.State.ToString());
                             currentRow++;
@@ -550,6 +558,35 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
 
             ImGui.End();
+        }
+
+        // Render floating values on items in haggle window
+        if (GameController.IngameState.IngameUi.HaggleWindow is { IsVisible: true } && _process?.CurrentWindow?.Items != null)
+        {
+            foreach (HaggleItem haggleItem in _process.CurrentWindow.Items)
+            {
+                if (haggleItem.State == HaggleItemState.Priced || haggleItem.State == HaggleItemState.TooExpensive)
+                {
+                    // Calculate the lower left position of the item
+                    var textX = haggleItem.Position.X + 2; // Small offset from left edge
+                    var textY = haggleItem.Position.Y + haggleItem.Position.Height - 16; // Position near bottom
+
+                    // Get the value to display
+                    float displayValue = haggleItem.ActualValue > 0 ? haggleItem.ActualValue : haggleItem.Value;
+                    string valueText = Math.Round(displayValue, 1).ToString(CultureInfo.InvariantCulture) + "c";
+
+                    // Choose color based on state
+                    var textColor = haggleItem.State == HaggleItemState.Priced ? Color.Green : Color.Red;
+
+                    // Draw semi-transparent background rectangle
+                    var textSize = Graphics.MeasureText(valueText, 12);
+                    var bgRect = new RectangleF(textX - 2, textY - 1, textSize.X + 4, textSize.Y + 2);
+#pragma warning disable CS0612 // Type or member is obsolete
+                    Graphics.DrawBox(bgRect, new Color(0, 0, 0, 180)); // Semi-transparent black background
+                    Graphics.DrawText(valueText, new Vector2(textX, textY), textColor, 12);
+#pragma warning restore CS0612 // Type or member is obsolete
+                }
+            }
         }
 
         var expeditionWindow = GameController.IngameState.IngameUi.ExpeditionWindow;

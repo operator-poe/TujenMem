@@ -22,6 +22,7 @@ public class HaggleItem
   public string Type { get; set; }
   public int Amount { get; set; }
   public float Value { get; set; }
+  public float ActualValue { get; set; }
 
   public HaggleItemState State { get; set; } = HaggleItemState.None;
 }

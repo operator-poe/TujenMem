@@ -95,6 +95,23 @@ public class HaggleProcessWindow
         });
 
       }
+      else if (type == "AbyssJewel" && TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableJewelPriceEstimation)
+      {
+        var mods = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
+        var itemLevel = mods.ItemLevel;
+
+        Items.Add(new HaggleItemAbyssJewel
+        {
+          Address = address,
+          Position = inventoryItem.GetClientRect(),
+          Name = baseItem.BaseName,
+          Type = type,
+          Amount = stack?.Size ?? 1,
+          Value = 0,
+          Price = null,
+          ItemLevel = itemLevel,
+        });
+      }
       else if (type.Contains("Gem"))
       {
         var gem = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.SkillGem>();
@@ -198,7 +215,13 @@ public class HaggleProcessWindow
         item.State = HaggleItemState.Rejected;
         continue;
       }
+      if (item.Type == "AbyssJewel" && !TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableJewelPriceEstimation)
+      {
+        item.State = HaggleItemState.Rejected;
+        continue;
+      }
       item.State = HaggleItemState.Unpriced;
+
     }
   }
 
@@ -323,6 +346,8 @@ public class HaggleProcessWindow
         item.Price = new HaggleCurrency(ttPriceType, ttPrice);
         item.Value = 0;
         NinjaItem ninjaItem = null;
+
+
         if (Ninja.Items.ContainsKey(item.Name))
         {
           ninjaItem = Ninja.Items[item.Name].Find(x => x.ChaosValue > 0);
@@ -391,9 +416,35 @@ public class HaggleProcessWindow
           if (ninjaItem != null)
           {
             item.Value = ninjaItem.ChaosValue * item.Amount;
+            item.ActualValue = item.Value;
           }
 
         }
+        else if (item is HaggleItemAbyssJewel && TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableJewelPriceEstimation)
+        {
+          Log.Debug($"Starting price estimation for abyss jewel: {item.Name}");
+          await ClipUtil.CopyWithVerification();
+          var text = ClipUtil.GetClipboardText();
+
+          var abyssJewel = item as HaggleItemAbyssJewel;
+          abyssJewel.ItemText = text;
+          if (await abyssJewel.GetPriceEstimationFromWebsite())
+          {
+            item.Value = (float)(abyssJewel.PriceEstimationInChaos * (abyssJewel.PriceEstimationConfidence / 100.0));
+            item.ActualValue = item.Value;
+          }
+
+          if (item.Value < TujenMem.Instance.Settings.SillyOrExperimenalFeatures.JewelChaosThreshold)
+          {
+            Log.Debug($"Price estimation for abyss jewel: {item.Name} is too low: {item.Value}");
+            item.Value = 0;
+          }
+          else
+          {
+            Log.Debug($"Price estimation for abyss jewel: {item.Name} is good: {item.Value}");
+          }
+        }
+
         else
         {
           Error.AddAndShow("Error while pricing item", $"There was no equivalent Ninja entry for {item.Name}.\nPlease check your item mappings and your Ninja settings.");
@@ -418,7 +469,7 @@ public class HaggleProcessWindow
       }
     }
     Log.Debug($"Finished getting item prices. {items.Count} items priced.");
-    if (TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableStatistics)
+    if (TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableStatistics && !TujenMem.Instance.Settings.DebugOnly)
     {
       foreach (var (item, ninjaItem) in items)
         Statistics.RecordItem(StatisticsWindowId, ninjaItem, item);
