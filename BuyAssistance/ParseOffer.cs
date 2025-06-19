@@ -50,7 +50,8 @@ public class ParseOffer
     {
       // IMPORTANT CHANGE: Moved the hyphen to the beginning of the character class
       // to avoid it being interpreted as a range.
-      return ReplaceHomoglyphs(System.Text.RegularExpressions.Regex.Replace(strIn, @"[^\-\w.:@ \n\r]", "",
+      // Added ◂ character to preserve it for price parsing
+      return ReplaceHomoglyphs(System.Text.RegularExpressions.Regex.Replace(strIn, @"[^\-\w.:@ \n\r◂]", "",
           RegexOptions.None, TimeSpan.FromSeconds(1.5)));
     }
     // If we timeout when replacing invalid characters,
@@ -165,12 +166,7 @@ public class ParseOffer
     int stock = 0;
     int price = 0;
 
-    var priceMatch = Regex.Match(context, @"(\d+)\s*(?:c|Сhaos|chaos)", RegexOptions.IgnoreCase);
-    if (priceMatch.Success)
-    {
-      price = int.Parse(priceMatch.Groups[1].Value);
-    }
-
+    // First try to find stock with x pattern
     var stockMatch = Regex.Match(context, @"(?:x\s*(\d+))|(?:(\d+)\s*x)|(?:(\d+)\s*stock)|(?:stock\s*(\d+))", RegexOptions.IgnoreCase);
     if (stockMatch.Success)
     {
@@ -184,6 +180,30 @@ public class ParseOffer
       }
     }
 
+    // Look for price patterns, but be more specific to avoid ilvl numbers
+    // Try multiple patterns in order of specificity
+    var pricePatterns = new[]
+    {
+      @"(\d+)\s*:chaos:",                // Most specific: "25:chaos:"
+      @"(\d+)\s*◂\s*chaos",              // "40 ◂ chaos" (handles Сhaos after homoglyph replacement)
+      @"◂\s*(\d+)\s*chaos",              // "◂44 chaos"
+      @"(\d+)\s*c\s*(?:/|each|ea)",      // "40c each" or "40c/ea"
+      @"(\d+)\s*chaos\s*(?:/|each|ea)",  // "40chaos each"
+      @"(\d+)\s*c\s*$",                  // "40c" at end of line
+      @"(\d+)\s*chaos\s*$",              // "40chaos" at end of line
+    };
+
+    foreach (var pattern in pricePatterns)
+    {
+      var priceMatch = Regex.Match(context, pattern, RegexOptions.IgnoreCase);
+      if (priceMatch.Success)
+      {
+        price = int.Parse(priceMatch.Groups[1].Value);
+        break;
+      }
+    }
+
+    // Fallback logic for when stock or price is not found
     if (stock == 0 || price == 0)
     {
       var numberMatches = Regex.Matches(context, @"\d+");
