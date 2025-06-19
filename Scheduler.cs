@@ -231,4 +231,25 @@ public class Scheduler
     Tasks.Clear();
     RestartableTasks.Clear();
   }
+
+  public void PauseStuckDetection()
+  {
+    if (CurrentRestartableTask != null)
+    {
+      CurrentRestartableTask.PauseStuckDetection();
+    }
+  }
+
+  public void ResumeStuckDetection()
+  {
+    if (CurrentRestartableTask != null)
+    {
+      CurrentRestartableTask.ResumeStuckDetection();
+    }
+  }
+
+  public RestartableTask GetCurrentRestartableTask()
+  {
+    return CurrentRestartableTask;
+  }
 }

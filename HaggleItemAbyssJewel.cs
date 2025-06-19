@@ -53,6 +53,9 @@ public class HaggleItemAbyssJewel : HaggleItem
     {
       Log.Debug($"Starting price estimation for jewel: {Name}");
 
+      // Pause stuck detection before HTTP request
+      TujenMem.Instance.Scheduler.PauseStuckDetection();
+
       // Rate limiting: wait if less than 1 second since last request
       var timeSinceLastRequest = DateTime.Now - _lastRequestTime;
       if (timeSinceLastRequest.TotalSeconds < 1)
@@ -79,6 +82,8 @@ public class HaggleItemAbyssJewel : HaggleItem
         if (apiResponse.Error != 0)
         {
           Log.Error($"Poeprices API error: {apiResponse.ErrorMsg}");
+          // Resume stuck detection before returning
+          TujenMem.Instance.Scheduler.ResumeStuckDetection();
           return false;
         }
 
@@ -110,12 +115,16 @@ public class HaggleItemAbyssJewel : HaggleItem
             else
             {
               Log.Error("Could not find Exalted Orb price in Ninja data");
+              // Resume stuck detection before returning
+              TujenMem.Instance.Scheduler.ResumeStuckDetection();
               return false;
             }
           }
           else
           {
             Log.Error($"Unknown currency from poeprices API: {apiResponse.Currency}");
+            // Resume stuck detection before returning
+            TujenMem.Instance.Scheduler.ResumeStuckDetection();
             return false;
           }
         }
@@ -125,12 +134,16 @@ public class HaggleItemAbyssJewel : HaggleItem
 
         Log.Debug($"Price estimation complete: {PriceEstimationInChaos}c (confidence: {PriceEstimationConfidence}%)");
 
+        // Resume stuck detection after successful completion
+        TujenMem.Instance.Scheduler.ResumeStuckDetection();
         return true;
       }
     }
     catch (Exception ex)
     {
       Log.Error($"Error getting price estimation: {ex.Message}");
+      // Resume stuck detection in case of exception
+      TujenMem.Instance.Scheduler.ResumeStuckDetection();
       return false;
     }
   }
@@ -140,6 +153,9 @@ public class HaggleItemAbyssJewel : HaggleItem
     try
     {
       Log.Debug($"Starting price estimation from website for jewel: {Name}");
+
+      // Pause stuck detection before HTTP request
+      TujenMem.Instance.Scheduler.PauseStuckDetection();
 
       // Rate limiting
       var timeSinceLastRequest = DateTime.Now - _lastRequestTime;
@@ -192,6 +208,8 @@ public class HaggleItemAbyssJewel : HaggleItem
         if (!response.IsSuccessStatusCode)
         {
           Log.Error($"Poeprices website request failed with status code {response.StatusCode}");
+          // Resume stuck detection before returning
+          TujenMem.Instance.Scheduler.ResumeStuckDetection();
           return false;
         }
 
@@ -210,6 +228,8 @@ public class HaggleItemAbyssJewel : HaggleItem
           if (!match.Success)
           {
             Log.Error("Could not find price in poeprices.info HTML response (neither table nor span pattern matched).");
+            // Resume stuck detection before returning
+            TujenMem.Instance.Scheduler.ResumeStuckDetection();
             return false;
           }
 
@@ -221,6 +241,8 @@ public class HaggleItemAbyssJewel : HaggleItem
         if (!float.TryParse(minPriceStr, NumberStyles.Any, CultureInfo.InvariantCulture, out minPrice))
         {
           Log.Error($"Could not parse min price from string: {minPriceStr}");
+          // Resume stuck detection before returning
+          TujenMem.Instance.Scheduler.ResumeStuckDetection();
           return false;
         }
 
@@ -253,12 +275,16 @@ public class HaggleItemAbyssJewel : HaggleItem
             else
             {
               Log.Error("Could not find Exalted Orb price in Ninja data");
+              // Resume stuck detection before returning
+              TujenMem.Instance.Scheduler.ResumeStuckDetection();
               return false;
             }
           }
           else
           {
             Log.Error($"Unknown currency from poeprices website: {currency}");
+            // Resume stuck detection before returning
+            TujenMem.Instance.Scheduler.ResumeStuckDetection();
             return false;
           }
         }
@@ -268,12 +294,16 @@ public class HaggleItemAbyssJewel : HaggleItem
 
         Log.Debug($"Price estimation from website complete: {PriceEstimationInChaos}c");
 
+        // Resume stuck detection after successful completion
+        TujenMem.Instance.Scheduler.ResumeStuckDetection();
         return true;
       }
     }
     catch (Exception ex)
     {
       Log.Error($"Error getting price estimation from website: {ex.Message}");
+      // Resume stuck detection in case of exception
+      TujenMem.Instance.Scheduler.ResumeStuckDetection();
       return false;
     }
   }

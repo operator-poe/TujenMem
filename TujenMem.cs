@@ -67,13 +67,13 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             {
                 Log.Debug("Starting Haggle Coroutine");
                 HaggleState = HaggleState.StartUp;
-                // Scheduler.AddRestartableTask(
-                //     () => HaggleCoroutine(),
-                //     "HaggleCoroutine",
-                //     () => StopAllRoutines(skipSchedulerStop: true),
-                //     maxRetries: 3
-                // );
-                Scheduler.AddTask(HaggleCoroutine(), "HaggleCoroutine");
+                Scheduler.AddRestartableTask(
+                    () => HaggleCoroutine(),
+                    "HaggleCoroutine",
+                    () => StopAllRoutines(skipSchedulerStop: true),
+                    maxRetries: 3
+                );
+                // Scheduler.AddTask(HaggleCoroutine(), "HaggleCoroutine");
             }
             else
             {
