@@ -4,6 +4,7 @@ public enum LogLevel
 {
     None,
     Error,
+    Warning,
     Debug,
 };
 
@@ -17,6 +18,8 @@ public class Log
             {
                 case "Debug":
                     return LogLevel.Debug;
+                case "Warning":
+                    return LogLevel.Warning;
                 case "Error":
                     return LogLevel.Error;
                 default:
@@ -27,6 +30,13 @@ public class Log
     public static void Debug(string message)
     {
         if (LogLevel < LogLevel.Debug)
+            return;
+        TujenMem.Instance.LogMsg($"TujenMem: {message}");
+    }
+
+    public static void Warning(string message)
+    {
+        if (LogLevel < LogLevel.Warning)
             return;
         TujenMem.Instance.LogMsg($"TujenMem: {message}");
     }

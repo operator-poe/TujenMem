@@ -106,6 +106,14 @@ public class ReRollable
     }
   }
 
+  public bool IsHovered
+  {
+    get
+    {
+      return Tooltip != null;
+    }
+  }
+
   public ItemData Data
   {
     get
