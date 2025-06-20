@@ -388,6 +388,8 @@ public class HotKeySettings
     public HotkeyNode StopHotKey { get; set; } = new HotkeyNode(Keys.Delete);
     public HotkeyNode RollAndBlessHotKey { get; set; } = new HotkeyNode(Keys.F4);
     public HotkeyNode IdentifyHotKey { get; set; } = new HotkeyNode(Keys.F9);
+    public HotkeyNode InventoryHotKey { get; set; } = new HotkeyNode(Keys.I);
+    public HotkeyNode TestHotKey { get; set; } = new HotkeyNode(Keys.F3);
 }
 
 [Submenu(CollapsedByDefault = true)]
