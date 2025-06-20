@@ -19,7 +19,8 @@ public class Statistics
   {
     get
     {
-      return Path.Combine(DataFolder, "Statistics.csv");
+      var leagueName = TujenMem.Instance?.Settings?.League?.Value ?? "Unknown";
+      return Path.Combine(DataFolder, $"{leagueName}.csv");
     }
   }
 

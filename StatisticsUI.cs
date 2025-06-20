@@ -21,14 +21,80 @@ public static class StatisticsUI
     public double TotalChaosValue => TotalAmount * ChaosValue;
   }
 
+  private class LeagueFileInfo
+  {
+    public string FileName { get; set; }
+    public string DisplayName { get; set; }
+    public DateTime LastModified { get; set; }
+  }
+
   private static bool _showWindow = false;
   private static Dictionary<string, StatisticItem> _statisticItems = new();
   private static int _totalWindows = 0;
   private static int _totalItemEntries = 0;
   private static DateTime _lastReadTime = DateTime.MinValue;
   private static readonly TimeSpan _readCooldown = TimeSpan.FromSeconds(5);
+  private static string _selectedLeagueFile = "";
+  private static List<LeagueFileInfo> _availableLeagueFiles = new();
 
-  private static string DataFileName => Path.Combine(TujenMem.Instance.DirectoryFullName, "Statistics", "Statistics.csv");
+  private static string DataFolder => Path.Combine(TujenMem.Instance.DirectoryFullName, "Statistics");
+
+  private static string DataFileName
+  {
+    get
+    {
+      if (!string.IsNullOrEmpty(_selectedLeagueFile))
+      {
+        return Path.Combine(DataFolder, _selectedLeagueFile);
+      }
+      var leagueName = TujenMem.Instance?.Settings?.League?.Value ?? "Unknown";
+      return Path.Combine(DataFolder, $"{leagueName}.csv");
+    }
+  }
+
+  private static void RefreshAvailableLeagueFiles()
+  {
+    _availableLeagueFiles.Clear();
+
+    if (!Directory.Exists(DataFolder))
+    {
+      return;
+    }
+
+    try
+    {
+      var csvFiles = Directory.GetFiles(DataFolder, "*.csv")
+          .Select(filePath => new LeagueFileInfo
+          {
+            FileName = Path.GetFileName(filePath),
+            DisplayName = $"{Path.GetFileNameWithoutExtension(filePath)} ({File.GetLastWriteTime(filePath):yyyy-MM-dd HH:mm})",
+            LastModified = File.GetLastWriteTime(filePath)
+          })
+          .OrderByDescending(file => file.LastModified)
+          .ToList();
+
+      _availableLeagueFiles = csvFiles;
+
+      // Set default selection to current league if not already set
+      if (string.IsNullOrEmpty(_selectedLeagueFile))
+      {
+        var currentLeagueName = TujenMem.Instance?.Settings?.League?.Value ?? "Unknown";
+        var currentLeagueFile = $"{currentLeagueName}.csv";
+        if (_availableLeagueFiles.Any(f => f.FileName == currentLeagueFile))
+        {
+          _selectedLeagueFile = currentLeagueFile;
+        }
+        else if (_availableLeagueFiles.Any())
+        {
+          _selectedLeagueFile = _availableLeagueFiles.First().FileName;
+        }
+      }
+    }
+    catch (Exception e)
+    {
+      DebugWindow.LogError($"Error refreshing league files: {e}");
+    }
+  }
 
   private static void ReadAndParseData(bool force = false)
   {
@@ -163,6 +229,7 @@ public static class StatisticsUI
       return;
     }
 
+    RefreshAvailableLeagueFiles();
     ReadAndParseData();
 
     ImGui.SetNextWindowSize(new Vector2(400, 600), ImGuiCond.FirstUseEver);
@@ -170,6 +237,33 @@ public static class StatisticsUI
     if (ImGui.Begin("Statistics", ref isVisible))
     {
       showSetting.Value = isVisible;
+
+      // League file selection dropdown
+      ImGui.Text("Select League File:");
+      ImGui.SameLine();
+      TujenMemSettings.HelpMarker("Select a league file to view statistics from. Files are ordered by last modified date.");
+
+      ImGui.PushItemWidth(ImGui.GetWindowContentRegionMax().X - ImGui.GetStyle().FramePadding.X * 2);
+      if (ImGui.BeginCombo("##leagueFileSelect", _selectedLeagueFile))
+      {
+        foreach (var leagueFile in _availableLeagueFiles)
+        {
+          bool isSelected = (_selectedLeagueFile == leagueFile.FileName);
+          if (ImGui.Selectable(leagueFile.DisplayName, isSelected))
+          {
+            _selectedLeagueFile = leagueFile.FileName;
+            ReadAndParseData(true); // Force reload with new file
+          }
+          if (isSelected)
+          {
+            ImGui.SetItemDefaultFocus();
+          }
+        }
+        ImGui.EndCombo();
+      }
+      ImGui.PopItemWidth();
+
+      ImGui.Separator();
 
       var buttonWidth = ImGui.CalcTextSize("Reload Data").X + ImGui.GetStyle().FramePadding.X * 2.0f;
       var displayModeWidth = 150f; // Aprox width for the combo box
