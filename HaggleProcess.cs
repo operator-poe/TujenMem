@@ -52,6 +52,12 @@ public class HaggleProcess
       await CurrentWindow.HaggleForItems();
     }
 
+    // Clear items to free up memory (only when not in debug mode)
+    if (!TujenMem.Instance.Settings.DebugOnly)
+    {
+      CurrentWindow.ClearItems();
+    }
+
     return true;
   }
 

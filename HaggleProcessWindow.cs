@@ -239,6 +239,8 @@ public class HaggleProcessWindow
         continue;
       }
 
+      CurrentHagglingItem = item;
+
       var attempts = 0;
       while (true)
       {
@@ -560,6 +562,13 @@ public class HaggleProcessWindow
       }
     }
     return false;
+  }
+
+  public void ClearItems()
+  {
+    Log.Debug("Clearing items list to free memory");
+    Items.Clear();
+    CurrentHagglingItem = null;
   }
 
 }

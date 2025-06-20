@@ -565,25 +565,76 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         {
             foreach (HaggleItem haggleItem in _process.CurrentWindow.Items)
             {
-                if (haggleItem.State == HaggleItemState.Priced || haggleItem.State == HaggleItemState.TooExpensive)
+                // Show floating values for all states except None
+                if (haggleItem.State != HaggleItemState.None)
                 {
-                    // Calculate the lower left position of the item
-                    var textX = haggleItem.Position.X + 2; // Small offset from left edge
-                    var textY = haggleItem.Position.Y + haggleItem.Position.Height - 16; // Position near bottom
+                    // Calculate positions for value (top) and cost (bottom)
+                    var valueX = haggleItem.Position.X + 2; // Small offset from left edge
+                    var valueY = haggleItem.Position.Y + 2; // Position near top
+                    var costX = haggleItem.Position.X + 2; // Small offset from left edge
+                    var costY = haggleItem.Position.Y + haggleItem.Position.Height - 16; // Position near bottom
 
                     // Get the value to display
                     float displayValue = haggleItem.ActualValue > 0 ? haggleItem.ActualValue : haggleItem.Value;
                     string valueText = Math.Round(displayValue, 1).ToString(CultureInfo.InvariantCulture) + "c";
 
-                    // Choose color based on state
-                    var textColor = haggleItem.State == HaggleItemState.Priced ? Color.Green : Color.Red;
+                    // Get the cost to display
+                    float costValue = haggleItem.Price?.TotalValue() ?? 0;
+                    string costText = Math.Round(costValue, 1).ToString(CultureInfo.InvariantCulture) + "c";
 
-                    // Draw semi-transparent background rectangle
-                    var textSize = Graphics.MeasureText(valueText, 12);
-                    var bgRect = new RectangleF(textX - 2, textY - 1, textSize.X + 4, textSize.Y + 2);
+                    // Choose color based on state (for value text and border)
+                    Color valueTextColor;
+                    Color borderColor;
+                    switch (haggleItem.State)
+                    {
+                        case HaggleItemState.Priced:
+                            valueTextColor = Color.Green;
+                            borderColor = Color.Green;
+                            break;
+                        case HaggleItemState.TooExpensive:
+                            valueTextColor = Color.Red;
+                            borderColor = Color.Red;
+                            break;
+                        case HaggleItemState.Rejected:
+                            valueTextColor = Color.Gray;
+                            borderColor = Color.Gray;
+                            break;
+                        case HaggleItemState.Bought:
+                            valueTextColor = Color.Blue;
+                            borderColor = Color.Blue;
+                            break;
+                        case HaggleItemState.Unpriced:
+                            valueTextColor = Color.Yellow;
+                            borderColor = Color.Yellow;
+                            break;
+                        default:
+                            valueTextColor = Color.White;
+                            borderColor = Color.White;
+                            break;
+                    }
+
+                    // Cost text is always yellow
+                    Color costTextColor = Color.Yellow;
+
+                    // Draw border around the item
 #pragma warning disable CS0612 // Type or member is obsolete
-                    Graphics.DrawBox(bgRect, new Color(0, 0, 0, 180)); // Semi-transparent black background
-                    Graphics.DrawText(valueText, new Vector2(textX, textY), textColor, 12);
+                    Graphics.DrawFrame(haggleItem.Position.TopLeft, haggleItem.Position.BottomRight, borderColor, 2);
+#pragma warning restore CS0612 // Type or member is obsolete
+
+                    // Draw semi-transparent background rectangle for value text
+                    var valueTextSize = Graphics.MeasureText(valueText, 12);
+                    var valueBgRect = new RectangleF(valueX - 2, valueY - 1, valueTextSize.X + 4, valueTextSize.Y + 2);
+#pragma warning disable CS0612 // Type or member is obsolete
+                    Graphics.DrawBox(valueBgRect, new Color(0, 0, 0, 180)); // Semi-transparent black background
+                    Graphics.DrawText(valueText, new Vector2(valueX, valueY), valueTextColor, 12);
+#pragma warning restore CS0612 // Type or member is obsolete
+
+                    // Draw semi-transparent background rectangle for cost text
+                    var costTextSize = Graphics.MeasureText(costText, 12);
+                    var costBgRect = new RectangleF(costX - 2, costY - 1, costTextSize.X + 4, costTextSize.Y + 2);
+#pragma warning disable CS0612 // Type or member is obsolete
+                    Graphics.DrawBox(costBgRect, new Color(0, 0, 0, 180)); // Semi-transparent black background
+                    Graphics.DrawText(costText, new Vector2(costX, costY), costTextColor, 12);
 #pragma warning restore CS0612 // Type or member is obsolete
                 }
             }
