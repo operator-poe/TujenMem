@@ -15,13 +15,13 @@ public class Runner
 {
   public static string CoroutineNameRollAndBless { get; set; } = "TujenMem_PrepareLogbook_RollAndBless";
 
-  private static Stash Stash { get; set; }
+  private static PStash Stash { get; set; }
   private static Inventory Inventory { get; set; }
 
   public static async SyncTask<bool> RollAndBlessLogbooksCoroutine()
   {
     Log.Debug("Starting RollAndBlessLogbooksCoroutine");
-    Stash = new Stash();
+    Stash = new PStash();
     Inventory = new Inventory();
 
     if (TujenMem.Instance.Settings.PrepareLogbookSettings.EnableRolling)
@@ -53,7 +53,7 @@ public class Runner
   public static async SyncTask<bool> IdentifyItemsInStash()
   {
     Log.Debug("Instantiating Stash");
-    Stash = new Stash(false);
+    Stash = new PStash(false);
     var inventory = TujenMem.Instance.GameController.IngameState.IngameUi.InventoryPanel[InventoryIndex.PlayerInventory];
 
     Log.Debug("Getting Wisdom");

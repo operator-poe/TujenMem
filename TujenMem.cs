@@ -43,6 +43,10 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Settings.HotKeySettings.RollAndBlessHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey); };
         Input.RegisterKey(Settings.HotKeySettings.IdentifyHotKey);
         Settings.HotKeySettings.IdentifyHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.IdentifyHotKey); };
+        Input.RegisterKey(Settings.HotKeySettings.InventoryHotKey);
+        Settings.HotKeySettings.InventoryHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.InventoryHotKey); };
+        Input.RegisterKey(Settings.HotKeySettings.TestHotKey);
+        Settings.HotKeySettings.TestHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.TestHotKey); };
 
         Ninja.CheckIntegrity();
         Task.Run(Ninja.Parse);
@@ -58,8 +62,25 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private readonly static string _coroutineName = "TujenMem_Haggle";
     private readonly static string _empty_inventory_coroutine_name = "TujenMem_Inventory";
     private readonly static string _reroll_coroutine_name = "TujenMem_Reroll";
+
+    private async SyncTask<bool> TestCoroutine()
+    {
+        Log.Debug("Test Coroutine");
+        await Stash.Utils.StashItemTypeToTab("4", "JewelAbyss");
+        return true;
+    }
+
     public override Job Tick()
     {
+        if (Settings.HotKeySettings.TestHotKey.PressedOnce())
+        {
+            Log.Debug("Test Hotkey pressed");
+            if (Core.ParallelRunner.FindByName("_TEST_") == null)
+            {
+                Scheduler.AddTask(TestCoroutine(), "_TEST_");
+            }
+        }
+
         if (Settings.HotKeySettings.StartHotKey.PressedOnce())
         {
             Log.Debug("Start Hotkey pressed");
@@ -155,6 +176,10 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Log.Debug("Emptying Inventory");
         await ExitAllWindows();
         await FindAndClickStash();
+
+        // TODO: Make this conditional in settings
+        await Stash.Utils.StashItemTypeToTab("4", "JewelAbyss");
+        await Stash.Stash.SelectTab(0);
 
         var inventory = GameController.IngameState.Data.ServerData.PlayerInventories[0].Inventory;
         var inventoryItems = inventory.InventorySlotItems;

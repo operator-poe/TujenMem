@@ -121,6 +121,11 @@ public static class Stash
     return Tabs.FindIndex(t => t.Name == name);
   }
 
+  public static bool HasStash(string tabName)
+  {
+    return Tabs.Any(t => t.Name == tabName);
+  }
+
   public static async SyncTask<bool> EnsureStashesAreLoaded(List<string> stashNames)
   {
     await Util.ForceFocusAsync();

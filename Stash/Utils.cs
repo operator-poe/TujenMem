@@ -67,4 +67,26 @@ public static class Utils
     }
     return true;
   }
+
+  public static async SyncTask<bool> StashItemTypeToTab(string tabName, string type)
+  {
+    var items = Inventory.GetByType(type);
+    if (items.Length > 0)
+    {
+      if (Stash.HasStash(tabName))
+      {
+        await Stash.SelectTab(tabName);
+        await InputAsync.Wait(() => Stash.ActiveTab.Name == tabName, 1000, "Tab not selected");
+        await InputAsync.HoldCtrl();
+        foreach (var item in items)
+        {
+          await InputAsync.ClickElement(item.GetClientRect());
+          await InputAsync.Wait(() => Stash.ActiveTab.Name == tabName, 1000, "Tab not selected");
+        }
+        await InputAsync.ReleaseCtrl();
+      }
+      return true;
+    }
+    return false;
+  }
 }

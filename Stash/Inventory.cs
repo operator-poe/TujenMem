@@ -36,7 +36,23 @@ public static class Inventory
     foreach (var item in InventoryItems)
     {
       var baseComponent = item.Item?.GetComponent<Base>();
+      Log.Debug(baseComponent.Name);
       if (baseComponent != null && nameSet.Contains(baseComponent.Name))
+      {
+        items.Add(item);
+      }
+    }
+
+    return items.OrderBy(x => x.PosX).ThenBy(x => x.PosY).ToArray();
+  }
+
+  public static InventSlotItem[] GetByType(string type)
+  {
+    var items = new List<InventSlotItem>();
+
+    foreach (var item in InventoryItems)
+    {
+      if (item.Item.Path.Contains(type))
       {
         items.Add(item);
       }

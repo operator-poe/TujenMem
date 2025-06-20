@@ -230,7 +230,7 @@ public class BuyAssistance
     }
     await InputAsync.Wait(() => TujenMem.Instance.GameController.Window.IsForeground(), 1000, "Window could not be focused");
 
-    var stash = new Stash();
+    var stash = new PStash();
     while (PrepareLogbook.Inventory.DivineCount < CurrentOffer.Divines)
     {
       var rest = CurrentOffer.Divines - PrepareLogbook.Inventory.DivineCount;

@@ -10,7 +10,7 @@ using SharpDX;
 namespace TujenMem.PrepareLogbook;
 
 
-public class Stash
+public class PStash
 {
   public string[] _currencyNames = {
     "Scroll of Wisdom",
@@ -97,7 +97,7 @@ public class Stash
     }
   }
 
-  public Stash(bool refresh = true)
+  public PStash(bool refresh = true)
   {
     if (refresh)
     {
