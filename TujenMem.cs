@@ -452,6 +452,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         InputAsync.LOCK_CONTROLLER = false;
         InputAsync.IControllerEnd();
         HaggleState = HaggleState.Idle;
+        _process.CurrentWindow.ClearItems();
         Input.KeyUp(Keys.ControlKey);
         Input.KeyUp(Keys.ShiftKey);
         HaggleStock.StockType = StockType.Tujen;
@@ -621,13 +622,32 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                     Graphics.DrawFrame(haggleItem.Position.TopLeft, haggleItem.Position.BottomRight, borderColor, 2);
 #pragma warning restore CS0612 // Type or member is obsolete
 
-                    // Draw semi-transparent background rectangle for value text
-                    var valueTextSize = Graphics.MeasureText(valueText, 12);
-                    var valueBgRect = new RectangleF(valueX - 2, valueY - 1, valueTextSize.X + 4, valueTextSize.Y + 2);
+                    // Check if this is an abyss jewel that's loading price estimation
+                    if (haggleItem is HaggleItemAbyssJewel abyssJewel && abyssJewel.IsLoadingPrice)
+                    {
+                        // Draw loading indicator at the top center of the item
+                        var loadingText = "LOADING...";
+                        var loadingTextSize = Graphics.MeasureText(loadingText, 10);
+                        var loadingX = haggleItem.Position.X + (haggleItem.Position.Width - loadingTextSize.X) / 2;
+                        var loadingY = haggleItem.Position.Y + 2;
+
+                        // Draw background for loading text
+                        var loadingBgRect = new RectangleF(loadingX - 2, loadingY - 1, loadingTextSize.X + 4, loadingTextSize.Y + 2);
 #pragma warning disable CS0612 // Type or member is obsolete
-                    Graphics.DrawBox(valueBgRect, new Color(0, 0, 0, 180)); // Semi-transparent black background
-                    Graphics.DrawText(valueText, new Vector2(valueX, valueY), valueTextColor, 12);
+                        Graphics.DrawBox(loadingBgRect, new Color(0, 0, 0, 200)); // Darker background for loading
+                        Graphics.DrawText(loadingText, new Vector2(loadingX, loadingY), Color.Orange, 10);
 #pragma warning restore CS0612 // Type or member is obsolete
+                    }
+                    else
+                    {
+                        // Draw semi-transparent background rectangle for value text
+                        var valueTextSize = Graphics.MeasureText(valueText, 12);
+                        var valueBgRect = new RectangleF(valueX - 2, valueY - 1, valueTextSize.X + 4, valueTextSize.Y + 2);
+#pragma warning disable CS0612 // Type or member is obsolete
+                        Graphics.DrawBox(valueBgRect, new Color(0, 0, 0, 180)); // Semi-transparent black background
+                        Graphics.DrawText(valueText, new Vector2(valueX, valueY), valueTextColor, 12);
+#pragma warning restore CS0612 // Type or member is obsolete
+                    }
 
                     // Draw semi-transparent background rectangle for cost text
                     var costTextSize = Graphics.MeasureText(costText, 12);
