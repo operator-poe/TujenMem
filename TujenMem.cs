@@ -2,6 +2,7 @@
 using ExileCore;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared;
+using ExileCore.Shared.Enums;
 using System.Collections;
 using System.Windows.Forms;
 using System.Threading.Tasks;
@@ -65,8 +66,27 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 
     private async SyncTask<bool> TestCoroutine()
     {
-        Log.Debug("Test Coroutine");
+        Log.Debug("Test Coroutine - Testing Snapshot System");
+
+        // Test snapshot creation and diff calculation
+        var snapshot1 = Stash.Inventory.CreateSnapshot();
+        Log.Debug($"Snapshot 1 created with {snapshot1.GetAllItems().Count} items");
+
+        // Wait a bit to simulate some time passing
+        await InputAsync.WaitX(2);
+
+        var snapshot2 = Stash.Inventory.CreateSnapshot();
+        Log.Debug($"Snapshot 2 created with {snapshot2.GetAllItems().Count} items");
+
+        var diff = Stash.Inventory.CalculateDiff(snapshot1, snapshot2);
+        Log.Debug($"Diff between snapshots: {diff.Count} new items");
+
+        // Test baseline functionality
+        Log.Debug($"Baseline debug info: {Stash.Inventory.GetSnapshotDebugInfo()}");
+
+        // Test the stash item functionality
         await Stash.Utils.StashItemTypeToTab("4", "JewelAbyss");
+
         return true;
     }
 
@@ -152,21 +172,19 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     public bool ShouldEmptyInventory()
     {
         Log.Debug("Checking if should empty inventory");
-        var inventory = GameController.IngameState.Data.ServerData.PlayerInventories[0].Inventory;
-        var inventoryItems = inventory.InventorySlotItems;
 
-        foreach (var item in inventoryItems)
+        // Use the snapshot system to check if there are items in the trigger row (row 10)
+        var snapshot = Stash.Inventory.CreateSnapshot();
+
+        for (int y = 0; y < 5; y++)
         {
-            if (item is null)
+            if (snapshot.IsOccupied(10, y))
             {
-                continue;
-            }
-            if (item.PosX >= 10 && item.PosX < 11)
-            {
-                Log.Debug("Should empty inventory");
+                Log.Debug("Should empty inventory - found item in trigger row");
                 return true;
             }
         }
+
         Log.Debug("Should not empty inventory");
         return false;
     }
@@ -174,6 +192,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     public async SyncTask<bool> EmptyInventoryCoRoutine()
     {
         Log.Debug("Emptying Inventory");
+
         await ExitAllWindows();
         await FindAndClickStash();
 
@@ -181,27 +200,35 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         await Stash.Utils.StashItemTypeToTab("4", "JewelAbyss");
         await Stash.Stash.SelectTab(0);
 
-        var inventory = GameController.IngameState.Data.ServerData.PlayerInventories[0].Inventory;
-        var inventoryItems = inventory.InventorySlotItems;
+        // Get items that were added since the baseline (new items from haggling)
+        var newItems = Stash.Inventory.CalculateDiffFromBaseline();
 
-        inventoryItems = inventoryItems.OrderBy(x => x.PosX).ThenBy(x => x.PosY).ToList();
+        // Also include any items that were already in the inventory (excluding the reserved rows)
+        var existingItems = Stash.Inventory.GetItemsToStash(10, 11);
 
-        Log.Debug($"Found {inventoryItems.Count} items in inventory");
+        // Combine and remove duplicates
+        var itemsToStash = newItems.Concat(existingItems).Distinct().OrderBy(x => x.PosX).ThenBy(x => x.PosY).ToList();
 
-        await InputAsync.KeyDown(Keys.ControlKey);
-        foreach (var item in inventoryItems)
+        Log.Debug($"Found {itemsToStash.Count} items to stash ({newItems.Count} new, {existingItems.Count} existing)");
+
+        if (itemsToStash.Count > 0)
         {
-            if (item is null || item.PosX >= 11)
+            await InputAsync.KeyDown(Keys.ControlKey);
+            foreach (var item in itemsToStash)
             {
-                continue;
+                if (item?.Item != null)
+                {
+                    await InputAsync.ClickElement(item.GetClientRect());
+                    await InputAsync.Wait();
+                }
             }
-            // await InputAsync.ClickElement(item.GetClientRect().Center);
-            await InputAsync.ClickElement(item.GetClientRect());
-            await InputAsync.Wait();
+            await InputAsync.KeyUp(Keys.ControlKey);
         }
-        await InputAsync.KeyUp(Keys.ControlKey);
 
         Log.Debug("Inventory emptied");
+
+        // Update the baseline snapshot to reflect the current state after stashing
+        Stash.Inventory.CreateBaselineSnapshot();
 
         await FindAndClickTujen();
         await InputAsync.Wait();
@@ -407,6 +434,10 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             Log.Error("Startup checks failed!");
             return false;
         }
+
+        // Create baseline snapshot for inventory tracking when haggle process starts
+        Log.Debug("Creating baseline inventory snapshot");
+        Stash.Inventory.CreateBaselineSnapshot();
 
         Log.Debug("Initiaizing Haggle process");
         _process = new HaggleProcess();
@@ -682,6 +713,125 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                     Graphics.DrawText(costText, new Vector2(costX, costY), costTextColor, 12);
 #pragma warning restore CS0612 // Type or member is obsolete
                 }
+            }
+        }
+
+        // Render inventory snapshot visualization when inventory is open
+        if (Settings.SillyOrExperimenalFeatures.ShowInventorySnapshotVisualization &&
+            GameController.IngameState.IngameUi.InventoryPanel[InventoryIndex.PlayerInventory] is { IsVisible: true })
+        {
+            var inventoryPanel = GameController.IngameState.IngameUi.InventoryPanel[InventoryIndex.PlayerInventory];
+            var inventoryRect = inventoryPanel.InventoryUIElement.GetClientRect();
+
+            // Get current snapshot and baseline
+            var currentSnapshot = Stash.Inventory.CreateSnapshot();
+            var baselineSnapshot = Stash.Inventory.GetBaselineSnapshot();
+
+            if (baselineSnapshot != null)
+            {
+                // Calculate cell size based on inventory dimensions
+                float cellWidth = inventoryRect.Width / 12f;
+                float cellHeight = inventoryRect.Height / 5f;
+
+                // Draw snapshot information
+                for (int x = 0; x < 12; x++)
+                {
+                    for (int y = 0; y < 5; y++)
+                    {
+                        var cellRect = new RectangleF(
+                            inventoryRect.X + x * cellWidth,
+                            inventoryRect.Y + y * cellHeight,
+                            cellWidth,
+                            cellHeight
+                        );
+
+                        bool isCurrentlyOccupied = currentSnapshot.IsOccupied(x, y);
+                        bool wasInBaseline = baselineSnapshot.IsOccupied(x, y);
+
+                        if (isCurrentlyOccupied)
+                        {
+                            Color cellColor;
+                            string label = "";
+
+                            if (wasInBaseline)
+                            {
+                                // Item was in baseline (existing item)
+                                cellColor = Color.Blue;
+                                label = "BASE";
+                            }
+                            else
+                            {
+                                // Item is new since baseline
+                                cellColor = Color.Green;
+                                label = "NEW";
+                            }
+
+                            // Draw colored background
+#pragma warning disable CS0612 // Type or member is obsolete
+                            Graphics.DrawBox(cellRect, new Color((byte)cellColor.R, (byte)cellColor.G, (byte)cellColor.B, (byte)100));
+                            Graphics.DrawFrame(cellRect.TopLeft, cellRect.BottomRight, cellColor, 2);
+#pragma warning restore CS0612 // Type or member is obsolete
+
+                            // Draw label
+                            var labelSize = Graphics.MeasureText(label, 10);
+                            var labelX = cellRect.X + (cellRect.Width - labelSize.X) / 2;
+                            var labelY = cellRect.Y + (cellRect.Height - labelSize.Y) / 2;
+#pragma warning disable CS0612 // Type or member is obsolete
+                            Graphics.DrawText(label, new Vector2(labelX, labelY), Color.White, 10);
+#pragma warning restore CS0612 // Type or member is obsolete
+                        }
+                        else if (wasInBaseline)
+                        {
+                            // Slot was occupied in baseline but is now empty (item was moved)
+                            Color cellColor = Color.Red;
+                            string label = "MOVED";
+
+                            // Draw colored background
+#pragma warning disable CS0612 // Type or member is obsolete
+                            Graphics.DrawBox(cellRect, new Color((byte)cellColor.R, (byte)cellColor.G, (byte)cellColor.B, (byte)100));
+                            Graphics.DrawFrame(cellRect.TopLeft, cellRect.BottomRight, cellColor, 2);
+#pragma warning restore CS0612 // Type or member is obsolete
+
+                            // Draw label
+                            var labelSize = Graphics.MeasureText(label, 10);
+                            var labelX = cellRect.X + (cellRect.Width - labelSize.X) / 2;
+                            var labelY = cellRect.Y + (cellRect.Height - labelSize.Y) / 2;
+#pragma warning disable CS0612 // Type or member is obsolete
+                            Graphics.DrawText(label, new Vector2(labelX, labelY), Color.White, 10);
+#pragma warning restore CS0612 // Type or member is obsolete
+                        }
+                    }
+                }
+
+                // Draw legend
+                var legendX = inventoryRect.X;
+                var legendY = inventoryRect.Bottom + 10;
+                var legendSpacing = 80;
+
+#pragma warning disable CS0612 // Type or member is obsolete
+                Graphics.DrawText("Legend:", new Vector2(legendX, legendY), Color.White, 12);
+                Graphics.DrawText("BLUE = Baseline items", new Vector2(legendX, legendY + 15), Color.Blue, 10);
+                Graphics.DrawText("GREEN = New items", new Vector2(legendX + legendSpacing, legendY + 15), Color.Green, 10);
+                Graphics.DrawText("RED = Moved items", new Vector2(legendX + legendSpacing * 2, legendY + 15), Color.Red, 10);
+
+                // Draw snapshot info
+                var baselineCount = baselineSnapshot.GetAllItems().Count;
+                var currentCount = currentSnapshot.GetAllItems().Count;
+                var newItemsCount = Stash.Inventory.CalculateDiffFromBaseline().Count;
+                var infoText = $"Baseline: {baselineCount} | Current: {currentCount} | New: {newItemsCount}";
+                Graphics.DrawText(infoText, new Vector2(legendX, legendY + 30), Color.Yellow, 10);
+#pragma warning restore CS0612 // Type or member is obsolete
+            }
+            else
+            {
+                // No baseline snapshot available
+                var infoText = "No baseline snapshot available. Start haggling to create one.";
+                var textSize = Graphics.MeasureText(infoText, 12);
+                var textX = inventoryRect.X + (inventoryRect.Width - textSize.X) / 2;
+                var textY = inventoryRect.Bottom + 10;
+#pragma warning disable CS0612 // Type or member is obsolete
+                Graphics.DrawText(infoText, new Vector2(textX, textY), Color.Yellow, 12);
+#pragma warning restore CS0612 // Type or member is obsolete
             }
         }
 

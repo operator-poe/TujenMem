@@ -671,6 +671,8 @@ public class SillyOrExperimenalFeatures
     public ToggleNode EnableJewelPriceEstimation { get; set; } = new ToggleNode(false);
     [Menu("Jewel Chaos Threshold", "Minimum chaos value for jewels to be considered for price estimation")]
     public RangeNode<int> JewelChaosThreshold { get; set; } = new RangeNode<int>(10, 0, 1000);
+    [Menu("Show Inventory Snapshot Visualization", "Show visual representation of snapshot items when inventory is open")]
+    public ToggleNode ShowInventorySnapshotVisualization { get; set; } = new ToggleNode(false);
 }
 
 
