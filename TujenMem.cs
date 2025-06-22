@@ -198,9 +198,22 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         await ExitAllWindows();
         await FindAndClickStash();
 
-        // TODO: Make this conditional in settings
-        await Stash.Utils.StashItemTypeToTab("4", "JewelAbyss");
-        await Stash.Stash.SelectTab(0);
+        // Stash items based on type mappings
+        foreach (var mapping in Settings.StashSettings.StashTabMappings)
+        {
+            await Stash.Utils.StashItemTypeToTab(mapping.Item2, mapping.Item1);
+        }
+
+        // Select the primary tab after stashing special items
+        if (!string.IsNullOrWhiteSpace(Settings.StashSettings.PrimaryStashTab.Value))
+        {
+            await Stash.Stash.SelectTab(Settings.StashSettings.PrimaryStashTab.Value);
+        }
+        else
+        {
+            // Fallback to first tab if primary is not set
+            await Stash.Stash.SelectTab(0);
+        }
 
         // Get items that were added since the baseline (new items from haggling)
         var newItems = Stash.Inventory.CalculateDiffFromBaseline();

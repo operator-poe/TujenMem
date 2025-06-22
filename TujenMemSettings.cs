@@ -373,6 +373,7 @@ public class TujenMemSettings : ISettings
     public PrepareLogbookSettings PrepareLogbookSettings { get; set; } = new PrepareLogbookSettings();
     public SillyOrExperimenalFeatures SillyOrExperimenalFeatures { get; set; } = new SillyOrExperimenalFeatures();
     public Gwennen Gwennen { get; set; } = new Gwennen();
+    public StashSettings StashSettings { get; set; } = new StashSettings();
 
     public ListNode LogLevel { get; set; } = new ListNode
     {
@@ -676,6 +677,8 @@ public class SillyOrExperimenalFeatures
 
     [Menu("Show Logbook Overlay", "Show quantity percentage and readiness status on logbooks in inventory")]
     public ToggleNode ShowLogbookOverlay { get; set; } = new ToggleNode(false);
+
+    public RangeNode<int> GwennenRefreshPrice { get; set; } = new RangeNode<int>(1, 1, 100);
 }
 
 
@@ -730,5 +733,94 @@ public class Gwennen
                 }
             }
         };
+    }
+}
+
+[Submenu(CollapsedByDefault = true)]
+public class StashSettings
+{
+    [Menu("Primary Stash Tab", "Name or index of the primary stash tab for items without a specific mapping. Defaults to 'Currency'")]
+    public TextNode PrimaryStashTab { get; set; } = new TextNode("Currency");
+
+    public List<(string, string)> StashTabMappings { get; set; } = new List<(string, string)>();
+
+    [JsonIgnore]
+    public CustomNode StashTabMappingsNode { get; set; }
+
+    public StashSettings()
+    {
+        (string, string) stashTabMappingSelected = ("", "");
+        var itemTypeInput = "";
+        var stashTabInput = "";
+        StashTabMappingsNode = new CustomNode
+        {
+            DrawDelegate = () =>
+            {
+                if (ImGui.TreeNode("Stash Tab Mappings"))
+                {
+                    ImGui.Text("Map item types to stash tab names or indices.");
+                    TujenMemSettings.HelpMarker("Here you can define where different types of items are stashed. For example, you can map 'JewelAbyss' to your abyss jewel tab (e.g. by name 'Abyss' or by index '4').");
+
+                    ImGui.Text("Item Type:");
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth(120);
+                    ImGui.InputTextWithHint("##ItemType", "e.g. JewelAbyss", ref itemTypeInput, 50);
+
+                    ImGui.SameLine();
+                    ImGui.Text("Stash Tab:");
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth(120);
+                    ImGui.InputTextWithHint("##StashTab", "e.g. Abyss or 4", ref stashTabInput, 50);
+
+                    ImGui.SameLine();
+                    if (ImGui.Button("Add"))
+                    {
+                        if (!string.IsNullOrWhiteSpace(itemTypeInput) && !string.IsNullOrWhiteSpace(stashTabInput))
+                        {
+                            StashTabMappings.Add((itemTypeInput, stashTabInput));
+                            itemTypeInput = "";
+                            stashTabInput = "";
+                        }
+                    }
+
+                    ImGui.Spacing();
+                    ImGui.BeginChild("##StashTabMappingsList", new System.Numerics.Vector2(0, 200), ImGuiChildFlags.Border);
+                    foreach (var s in StashTabMappings)
+                    {
+                        if (ImGui.Selectable($"{s.Item1} -> {s.Item2}", s == stashTabMappingSelected))
+                        {
+                            stashTabMappingSelected = s;
+                        }
+                    }
+                    ImGui.EndChild();
+
+                    if (stashTabMappingSelected.Item1 != "")
+                    {
+                        ImGui.Spacing();
+                        ImGui.Text($"Selected: {stashTabMappingSelected.Item1} -> {stashTabMappingSelected.Item2}");
+                        ImGui.SameLine();
+                        if (ImGui.Button("Remove"))
+                        {
+                            StashTabMappings.Remove(stashTabMappingSelected);
+                            stashTabMappingSelected = ("", "");
+                        }
+                    }
+
+                    ImGui.TreePop();
+                }
+            }
+        };
+    }
+
+    public void SetDefaults()
+    {
+        StashTabMappings = new List<(string, string)>
+        {
+            ("JewelAbyss", "4"),
+            ("Map", "Maps"),
+            ("Gem", "Gems"),
+            ("ClusterJewel", "Jewels"),
+        };
+        PrimaryStashTab = new TextNode("Currency");
     }
 }
