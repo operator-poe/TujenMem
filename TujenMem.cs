@@ -537,6 +537,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     {
         Error.Render();
 
+        var drawList = ImGui.GetBackgroundDrawList();
+
         StatisticsUI.Render(Settings.SillyOrExperimenalFeatures.ShowStatisticsWindow);
 
         if (Settings.ShowDebugWindow && (HaggleState is HaggleState.Running || Settings.DebugOnly) && GameController.IngameState.IngameUi.HaggleWindow is { IsVisible: true })
@@ -630,93 +632,70 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 // Show floating values for all states except None
                 if (haggleItem.State != HaggleItemState.None)
                 {
-                    // Calculate positions for value (top) and cost (bottom)
-                    var valueX = haggleItem.Position.X + 2; // Small offset from left edge
-                    var valueY = haggleItem.Position.Y + 2; // Position near top
-                    var costX = haggleItem.Position.X + 2; // Small offset from left edge
-                    var costY = haggleItem.Position.Y + haggleItem.Position.Height - 16; // Position near bottom
+                    var pos = haggleItem.Position.TopLeft;
+                    var size = haggleItem.Position.Size;
 
-                    // Get the value to display
-                    float displayValue = haggleItem.ActualValue > 0 ? haggleItem.ActualValue : haggleItem.Value;
-                    string valueText = Math.Round(displayValue, 1).ToString(CultureInfo.InvariantCulture) + "c";
+                    // Choose color based on state (for value text and border)
+                    uint borderColor;
+                    uint valueTextColor;
+
+                    switch (haggleItem.State)
+                    {
+                        case HaggleItemState.Priced:
+                            borderColor = 0xFF00FF00; // Green (AABBGGRR)
+                            valueTextColor = 0xFF00FF00;
+                            break;
+                        case HaggleItemState.TooExpensive:
+                            borderColor = 0xFF0000FF; // Red
+                            valueTextColor = 0xFF0000FF;
+                            break;
+                        case HaggleItemState.Rejected:
+                            borderColor = 0xFF808080; // Gray
+                            valueTextColor = 0xFF808080;
+                            break;
+                        case HaggleItemState.Bought:
+                            borderColor = 0xFFFF0000; // Blue
+                            valueTextColor = 0xFFFF0000;
+                            break;
+                        case HaggleItemState.Unpriced:
+                            borderColor = 0xFF00FFFF; // Yellow
+                            valueTextColor = 0xFF00FFFF;
+                            break;
+                        default:
+                            borderColor = 0xFFFFFFFF; // White
+                            valueTextColor = 0xFFFFFFFF;
+                            break;
+                    }
+
+                    // Draw border around the item
+                    drawList.AddRect(new System.Numerics.Vector2(pos.X, pos.Y), new System.Numerics.Vector2(pos.X + size.Width, pos.Y + size.Height), borderColor, 0, ImDrawFlags.None, 2);
+
+                    if (haggleItem is HaggleItemAbyssJewel abyssJewel && abyssJewel.IsLoadingPrice)
+                    {
+                        var loadingText = "LOADING...";
+                        var loadingTextSize = ImGui.CalcTextSize(loadingText);
+                        var loadingPos = new System.Numerics.Vector2(pos.X + (size.Width - loadingTextSize.X) / 2, pos.Y + 2);
+                        drawList.AddRectFilled(new System.Numerics.Vector2(loadingPos.X - 2, loadingPos.Y - 1), new System.Numerics.Vector2(loadingPos.X + loadingTextSize.X + 2, loadingPos.Y + loadingTextSize.Y + 1), 0xB4000000); // Semi-transparent black
+                        drawList.AddText(loadingPos, 0xFF00A5FF, loadingText); // Orange
+                    }
+                    else
+                    {
+                        // Get the value to display
+                        float displayValue = haggleItem.ActualValue > 0 ? haggleItem.ActualValue : haggleItem.Value;
+                        string valueText = Math.Round(displayValue, 1).ToString(CultureInfo.InvariantCulture) + "c";
+                        var valueTextSize = ImGui.CalcTextSize(valueText);
+                        var valuePos = new System.Numerics.Vector2(pos.X + 2, pos.Y + 2);
+                        drawList.AddRectFilled(new System.Numerics.Vector2(valuePos.X - 2, valuePos.Y - 1), new System.Numerics.Vector2(valuePos.X + valueTextSize.X + 2, valuePos.Y + valueTextSize.Y + 1), 0xB4000000); // Semi-transparent black
+                        drawList.AddText(valuePos, valueTextColor, valueText);
+                    }
 
                     // Get the cost to display
                     float costValue = haggleItem.Price?.TotalValue() ?? 0;
                     string costText = Math.Round(costValue, 1).ToString(CultureInfo.InvariantCulture) + "c";
-
-                    // Choose color based on state (for value text and border)
-                    Color valueTextColor;
-                    Color borderColor;
-                    switch (haggleItem.State)
-                    {
-                        case HaggleItemState.Priced:
-                            valueTextColor = Color.Green;
-                            borderColor = Color.Green;
-                            break;
-                        case HaggleItemState.TooExpensive:
-                            valueTextColor = Color.Red;
-                            borderColor = Color.Red;
-                            break;
-                        case HaggleItemState.Rejected:
-                            valueTextColor = Color.Gray;
-                            borderColor = Color.Gray;
-                            break;
-                        case HaggleItemState.Bought:
-                            valueTextColor = Color.Blue;
-                            borderColor = Color.Blue;
-                            break;
-                        case HaggleItemState.Unpriced:
-                            valueTextColor = Color.Yellow;
-                            borderColor = Color.Yellow;
-                            break;
-                        default:
-                            valueTextColor = Color.White;
-                            borderColor = Color.White;
-                            break;
-                    }
-
-                    // Cost text is always yellow
-                    Color costTextColor = Color.Yellow;
-
-                    // Draw border around the item
-#pragma warning disable CS0612 // Type or member is obsolete
-                    Graphics.DrawFrame(haggleItem.Position.TopLeft, haggleItem.Position.BottomRight, borderColor, 2);
-#pragma warning restore CS0612 // Type or member is obsolete
-
-                    // Check if this is an abyss jewel that's loading price estimation
-                    if (haggleItem is HaggleItemAbyssJewel abyssJewel && abyssJewel.IsLoadingPrice)
-                    {
-                        // Draw loading indicator at the top center of the item
-                        var loadingText = "LOADING...";
-                        var loadingTextSize = Graphics.MeasureText(loadingText, 10);
-                        var loadingX = haggleItem.Position.X + (haggleItem.Position.Width - loadingTextSize.X) / 2;
-                        var loadingY = haggleItem.Position.Y + 2;
-
-                        // Draw background for loading text
-                        var loadingBgRect = new RectangleF(loadingX - 2, loadingY - 1, loadingTextSize.X + 4, loadingTextSize.Y + 2);
-#pragma warning disable CS0612 // Type or member is obsolete
-                        Graphics.DrawBox(loadingBgRect, new Color(0, 0, 0, 200)); // Darker background for loading
-                        Graphics.DrawText(loadingText, new Vector2(loadingX, loadingY), Color.Orange, 10);
-#pragma warning restore CS0612 // Type or member is obsolete
-                    }
-                    else
-                    {
-                        // Draw semi-transparent background rectangle for value text
-                        var valueTextSize = Graphics.MeasureText(valueText, 12);
-                        var valueBgRect = new RectangleF(valueX - 2, valueY - 1, valueTextSize.X + 4, valueTextSize.Y + 2);
-#pragma warning disable CS0612 // Type or member is obsolete
-                        Graphics.DrawBox(valueBgRect, new Color(0, 0, 0, 180)); // Semi-transparent black background
-                        Graphics.DrawText(valueText, new Vector2(valueX, valueY), valueTextColor, 12);
-#pragma warning restore CS0612 // Type or member is obsolete
-                    }
-
-                    // Draw semi-transparent background rectangle for cost text
-                    var costTextSize = Graphics.MeasureText(costText, 12);
-                    var costBgRect = new RectangleF(costX - 2, costY - 1, costTextSize.X + 4, costTextSize.Y + 2);
-#pragma warning disable CS0612 // Type or member is obsolete
-                    Graphics.DrawBox(costBgRect, new Color(0, 0, 0, 180)); // Semi-transparent black background
-                    Graphics.DrawText(costText, new Vector2(costX, costY), costTextColor, 12);
-#pragma warning restore CS0612 // Type or member is obsolete
+                    var costTextSize = ImGui.CalcTextSize(costText);
+                    var costPos = new System.Numerics.Vector2(pos.X + 2, pos.Y + size.Height - costTextSize.Y - 2);
+                    drawList.AddRectFilled(new System.Numerics.Vector2(costPos.X - 2, costPos.Y - 1), new System.Numerics.Vector2(costPos.X + costTextSize.X + 2, costPos.Y + costTextSize.Y + 1), 0xB4000000); // Semi-transparent black
+                    drawList.AddText(costPos, 0xFF00FFFF, costText); // Yellow
                 }
             }
         }
@@ -772,18 +751,18 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                             }
 
                             // Draw colored background
-#pragma warning disable CS0612 // Type or member is obsolete
-                            Graphics.DrawBox(cellRect, new Color((byte)cellColor.R, (byte)cellColor.G, (byte)cellColor.B, (byte)100));
-                            Graphics.DrawFrame(cellRect.TopLeft, cellRect.BottomRight, cellColor, 2);
-#pragma warning restore CS0612 // Type or member is obsolete
+                            var bgColorObj = new Color(cellColor.R, cellColor.G, cellColor.B, (byte)100);
+                            uint bgColor = ImGui.GetColorU32(new System.Numerics.Vector4(bgColorObj.R / 255f, bgColorObj.G / 255f, bgColorObj.B / 255f, bgColorObj.A / 255f));
+                            uint frameColor = ImGui.GetColorU32(new System.Numerics.Vector4(cellColor.R / 255f, cellColor.G / 255f, cellColor.B / 255f, cellColor.A / 255f));
+                            drawList.AddRectFilled(new System.Numerics.Vector2(cellRect.Left, cellRect.Top), new System.Numerics.Vector2(cellRect.Right, cellRect.Bottom), bgColor);
+                            drawList.AddRect(new System.Numerics.Vector2(cellRect.Left, cellRect.Top), new System.Numerics.Vector2(cellRect.Right, cellRect.Bottom), frameColor, 0, ImDrawFlags.None, 2);
+
 
                             // Draw label
-                            var labelSize = Graphics.MeasureText(label, 10);
+                            var labelSize = ImGui.CalcTextSize(label);
                             var labelX = cellRect.X + (cellRect.Width - labelSize.X) / 2;
                             var labelY = cellRect.Y + (cellRect.Height - labelSize.Y) / 2;
-#pragma warning disable CS0612 // Type or member is obsolete
-                            Graphics.DrawText(label, new Vector2(labelX, labelY), Color.White, 10);
-#pragma warning restore CS0612 // Type or member is obsolete
+                            drawList.AddText(new System.Numerics.Vector2(labelX, labelY), 0xFFFFFFFF, label);
                         }
                         else if (wasInBaseline)
                         {
@@ -792,18 +771,17 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                             string label = "MOVED";
 
                             // Draw colored background
-#pragma warning disable CS0612 // Type or member is obsolete
-                            Graphics.DrawBox(cellRect, new Color((byte)cellColor.R, (byte)cellColor.G, (byte)cellColor.B, (byte)100));
-                            Graphics.DrawFrame(cellRect.TopLeft, cellRect.BottomRight, cellColor, 2);
-#pragma warning restore CS0612 // Type or member is obsolete
+                            var bgColorObj = new Color(cellColor.R, cellColor.G, cellColor.B, (byte)100);
+                            uint bgColor = ImGui.GetColorU32(new System.Numerics.Vector4(bgColorObj.R / 255f, bgColorObj.G / 255f, bgColorObj.B / 255f, bgColorObj.A / 255f));
+                            uint frameColor = ImGui.GetColorU32(new System.Numerics.Vector4(cellColor.R / 255f, cellColor.G / 255f, cellColor.B / 255f, cellColor.A / 255f));
+                            drawList.AddRectFilled(new System.Numerics.Vector2(cellRect.Left, cellRect.Top), new System.Numerics.Vector2(cellRect.Right, cellRect.Bottom), bgColor);
+                            drawList.AddRect(new System.Numerics.Vector2(cellRect.Left, cellRect.Top), new System.Numerics.Vector2(cellRect.Right, cellRect.Bottom), frameColor, 0, ImDrawFlags.None, 2);
 
                             // Draw label
-                            var labelSize = Graphics.MeasureText(label, 10);
+                            var labelSize = ImGui.CalcTextSize(label);
                             var labelX = cellRect.X + (cellRect.Width - labelSize.X) / 2;
                             var labelY = cellRect.Y + (cellRect.Height - labelSize.Y) / 2;
-#pragma warning disable CS0612 // Type or member is obsolete
-                            Graphics.DrawText(label, new Vector2(labelX, labelY), Color.White, 10);
-#pragma warning restore CS0612 // Type or member is obsolete
+                            drawList.AddText(new System.Numerics.Vector2(labelX, labelY), 0xFFFFFFFF, label);
                         }
                     }
                 }
@@ -811,32 +789,28 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 // Draw legend
                 var legendX = inventoryRect.X;
                 var legendY = inventoryRect.Bottom + 10;
-                var legendSpacing = 80;
+                var legendSpacing = 150;
 
-#pragma warning disable CS0612 // Type or member is obsolete
-                Graphics.DrawText("Legend:", new Vector2(legendX, legendY), Color.White, 12);
-                Graphics.DrawText("BLUE = Baseline items", new Vector2(legendX, legendY + 15), Color.Blue, 10);
-                Graphics.DrawText("GREEN = New items", new Vector2(legendX + legendSpacing, legendY + 15), Color.Green, 10);
-                Graphics.DrawText("RED = Moved items", new Vector2(legendX + legendSpacing * 2, legendY + 15), Color.Red, 10);
+                drawList.AddText(new System.Numerics.Vector2(legendX, legendY), 0xFFFFFFFF, "Legend:");
+                drawList.AddText(new System.Numerics.Vector2(legendX, legendY + 15), 0xFFFF0000, "BLUE = Baseline items");
+                drawList.AddText(new System.Numerics.Vector2(legendX, legendY + 30), 0xFF00FF00, "GREEN = New items");
+                drawList.AddText(new System.Numerics.Vector2(legendX, legendY + 45), 0xFF0000FF, "RED = Moved items");
 
                 // Draw snapshot info
                 var baselineCount = baselineSnapshot.GetAllItems().Count;
                 var currentCount = currentSnapshot.GetAllItems().Count;
                 var newItemsCount = Stash.Inventory.CalculateDiffFromBaseline().Count;
                 var infoText = $"Baseline: {baselineCount} | Current: {currentCount} | New: {newItemsCount}";
-                Graphics.DrawText(infoText, new Vector2(legendX, legendY + 30), Color.Yellow, 10);
-#pragma warning restore CS0612 // Type or member is obsolete
+                drawList.AddText(new System.Numerics.Vector2(legendX, legendY + 60), 0xFF00FFFF, infoText);
             }
             else
             {
                 // No baseline snapshot available
                 var infoText = "No baseline snapshot available. Start haggling to create one.";
-                var textSize = Graphics.MeasureText(infoText, 12);
+                var textSize = ImGui.CalcTextSize(infoText);
                 var textX = inventoryRect.X + (inventoryRect.Width - textSize.X) / 2;
                 var textY = inventoryRect.Bottom + 10;
-#pragma warning disable CS0612 // Type or member is obsolete
-                Graphics.DrawText(infoText, new Vector2(textX, textY), Color.Yellow, 12);
-#pragma warning restore CS0612 // Type or member is obsolete
+                drawList.AddText(new System.Numerics.Vector2(textX, textY), 0xFF00FFFF, infoText);
             }
         }
 
@@ -875,9 +849,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 });
 
                 var chosenNode = expeditionNodes.First();
-#pragma warning disable CS0612 // Type or member is obsolete
-                Graphics.DrawFrame(chosenNode.Position.TopLeft, chosenNode.Position.BottomRight, Color.Orange, 3);
-#pragma warning restore CS0612 // Type or member is obsolete
+                drawList.AddRect(new System.Numerics.Vector2(chosenNode.Position.TopLeft.X, chosenNode.Position.TopLeft.Y), new System.Numerics.Vector2(chosenNode.Position.BottomRight.X, chosenNode.Position.BottomRight.Y), 0xFF00A5FF, 0, ImDrawFlags.None, 3);
             }
         }
 
@@ -896,9 +868,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             {
                 var rect = GameController.IngameState.IngameUi.HaggleWindow.GetChildAtIndex(3).GetClientRect();
                 var textPos = new Vector2(rect.X, rect.Y - 20);
-#pragma warning disable CS0612 // Type or member is obsolete
-                Graphics.DrawText("WARNING: Some artifacts are disabled", textPos, Color.Red, 20);
-#pragma warning restore CS0612 // Type or member is obsolete
+                drawList.AddText(new System.Numerics.Vector2(textPos.X, textPos.Y), 0xFF0000FF, "WARNING: Some artifacts are disabled");
             }
         }
 
@@ -929,7 +899,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             var txt = "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana Vorana !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
             txt += txt;
             txt += txt;
-            var textSize = Graphics.MeasureText(txt, 20);
+            var textSize = ImGui.CalcTextSize(txt);
 
             if (_areaHasVoranaJumps % 10 == 0)
             {
@@ -941,9 +911,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             for (int i = 0; i < drawNum; i++)
             {
                 var y = screenHeight / drawNum * i;
-#pragma warning disable CS0612 // Type or member is obsolete
-                Graphics.DrawText(txt, new Vector2(screenWidth / 2 - textSize.X / 2, y), _areaHasChangedVoranaColor, 20);
-#pragma warning restore CS0612 // Type or member is obsolete
+                var voranaColor = ImGui.GetColorU32(new System.Numerics.Vector4(_areaHasChangedVoranaColor.R / 255f, _areaHasChangedVoranaColor.G / 255f, _areaHasChangedVoranaColor.B / 255f, _areaHasChangedVoranaColor.A / 255f));
+                drawList.AddText(new System.Numerics.Vector2(screenWidth / 2 - textSize.X / 2, y), voranaColor, txt);
             }
 
             if (_areaHasVoranaJumps > 100)

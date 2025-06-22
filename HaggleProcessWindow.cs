@@ -504,7 +504,18 @@ public class HaggleProcessWindow
       while (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: true })
       {
         attempts++;
-        await InputAsync.Wait();
+        if (attempts > 2)
+        {
+          await TaskUtils.NextFrame();
+          if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: false })
+          {
+            break;
+          }
+        }
+        else
+        {
+          await InputAsync.Wait();
+        }
         var maxOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentMaxOffer;
         var minOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentMinOffer;
         var currentOffer = TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ArtifactOfferSliderElement.CurrentOffer;
@@ -530,9 +541,12 @@ public class HaggleProcessWindow
         }
         s1.Stop();
         Log.Debug($"Time to Haggle: {s1.ElapsedMilliseconds}ms");
-        await TaskUtils.NextFrame();
-        await InputAsync.ClickElement(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect());
-        await InputAsync.Wait();
+
+        if (TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow is { IsVisible: true })
+        {
+          await InputAsync.ClickElement(TujenMem.Instance.GameController.IngameState.IngameUi.HaggleWindow.TujenHaggleWindow.ConfirmButton.GetClientRect());
+          await InputAsync.Wait();
+        }
       }
       CurrentHagglingItem = null;
     }
