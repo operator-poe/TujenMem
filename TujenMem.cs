@@ -92,6 +92,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 
     public override Job Tick()
     {
+        Scheduler.Run();
+
         if (Settings.HotKeySettings.TestHotKey.PressedOnce())
         {
             Log.Debug("Test Hotkey pressed");
@@ -493,6 +495,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         }
         await InputAsync.ClickElement(GameController.IngameState.IngameUi.HaggleWindow.RefreshItemsButton.GetClientRect());
         await InputAsync.Wait();
+        await InputAsync.Wait();
         Log.Debug("ReRolled window");
         return true;
     }
@@ -508,7 +511,10 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         InputAsync.LOCK_CONTROLLER = false;
         InputAsync.IControllerEnd();
         HaggleState = HaggleState.Idle;
-        _process.CurrentWindow.ClearItems();
+        if (_process != null && _process.CurrentWindow != null)
+        {
+            _process.CurrentWindow.ClearItems();
+        }
         Input.KeyUp(Keys.ControlKey);
         Input.KeyUp(Keys.ShiftKey);
         HaggleStock.StockType = StockType.Tujen;
@@ -529,7 +535,6 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 
     public override void Render()
     {
-        Scheduler.Run();
         Error.Render();
 
         StatisticsUI.Render(Settings.SillyOrExperimenalFeatures.ShowStatisticsWindow);
@@ -835,6 +840,9 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
         }
 
+        // Render logbook overlay (moved to PrepareLogbook.Inventory)
+        // PrepareLogbook.Inventory.RenderOverlay();
+
         var expeditionWindow = GameController.IngameState.IngameUi.ExpeditionWindow;
         if (Settings.ExpeditionMapHelper && expeditionWindow is { IsVisible: true })
         {
@@ -971,5 +979,67 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         {
             _areaHasVorana = true;
         }
+    }
+
+    public bool IsLogbookReady(PrepareLogbook.Logbook logbook, PrepareLogbookSettings settings)
+    {
+        // Check if logbook is corrupted
+        if (logbook.IsCorrupted)
+            return false;
+
+        // Check if logbook is identified
+        if (!logbook.IsIdentified)
+            return false;
+
+        // Check quantity threshold
+        var quantity = logbook.Quantity ?? 0;
+        if (quantity < settings.MinQuantity)
+            return false;
+
+        // Check for bad mods
+        var badMods = settings.ModsBlackList.Value.Split(',').Select(x => x.ToLower()).ToList();
+        if (logbook.Mods.Any(entry => badMods.Any(term => entry.Contains(term))))
+            return false;
+
+        // For T17+ maps, check additional criteria
+        var mapInfo = logbook.Data?.MapInfo;
+        if (mapInfo != null && mapInfo.Tier >= 17)
+        {
+            bool shouldCheckScarabs = settings.MinScarabsT17 >= 1;
+            bool shouldCheckMaps = settings.MinMapsT17 >= 1;
+            bool shouldCheckCurrency = settings.MinCurrencyT17 >= 1;
+            bool shouldCheckPackSize = settings.MinPackSizeT17 >= 1;
+
+            bool hasEnoughScarabs = mapInfo.MoreScarabs >= settings.MinScarabsT17;
+            bool hasEnoughMaps = mapInfo.MoreMaps >= settings.MinMapsT17;
+            bool hasEnoughCurrency = mapInfo.MoreCurrency >= settings.MinCurrencyT17;
+            bool hasEnoughPackSize = mapInfo.PackSize >= settings.MinPackSizeT17;
+
+            if (settings.MinT17OrMode)
+            {
+                // In OR mode, any one criterion being met is enough
+                if (shouldCheckScarabs && hasEnoughScarabs) return true;
+                if (shouldCheckMaps && hasEnoughMaps) return true;
+                if (shouldCheckCurrency && hasEnoughCurrency) return true;
+                if (shouldCheckPackSize && hasEnoughPackSize) return true;
+
+                // If none of the enabled criteria are met, it's not ready
+                return false;
+            }
+            else
+            {
+                // In AND mode, all enabled criteria must be met
+                if (shouldCheckScarabs && !hasEnoughScarabs) return false;
+                if (shouldCheckMaps && !hasEnoughMaps) return false;
+                if (shouldCheckCurrency && !hasEnoughCurrency) return false;
+                if (shouldCheckPackSize && !hasEnoughPackSize) return false;
+            }
+        }
+
+        // For logbooks, check if they need blessing
+        if (logbook.Rarity == ItemRarity.Rare && !logbook.IsBlessed)
+            return false;
+
+        return true;
     }
 }

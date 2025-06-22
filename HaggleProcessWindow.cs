@@ -95,7 +95,7 @@ public class HaggleProcessWindow
       //   });
 
       // }
-      else if ((type == "Jewel" && baseItem.BaseName.Contains("Cluster") || type == "AbyssJewel") && TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableJewelPriceEstimation)
+      else if ((type == "Jewel" && baseItem.BaseName.Contains("Cluster") || baseItem.BaseName == "Breach Ring" || type == "AbyssJewel") && TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableJewelPriceEstimation)
       {
         var mods = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
         var itemLevel = mods.ItemLevel;

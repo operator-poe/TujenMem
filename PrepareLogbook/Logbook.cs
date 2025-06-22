@@ -98,7 +98,7 @@ public class ReRollable
       {
         return null;
       }
-      if (Slot.Tooltip?.GetChildAtIndex(0).ChildCount == 0)
+      if (Slot.Tooltip == null || Slot.Tooltip.ChildCount == 0)
       {
         return null;
       }
@@ -179,13 +179,13 @@ public class ReRollable
     {
       if (Item == null)
       {
-        return null;
+        return new List<string>();
       }
       var mods = Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
       if (mods == null || mods.HumanStats == null)
       {
         Log.Error("Mods is null");
-        return null;
+        return new List<string>();
       }
       return mods.HumanStats.Select(x => x.ToLower()).ToList();
     }

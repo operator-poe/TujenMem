@@ -673,6 +673,9 @@ public class SillyOrExperimenalFeatures
     public RangeNode<int> JewelChaosThreshold { get; set; } = new RangeNode<int>(10, 0, 1000);
     [Menu("Show Inventory Snapshot Visualization", "Show visual representation of snapshot items when inventory is open")]
     public ToggleNode ShowInventorySnapshotVisualization { get; set; } = new ToggleNode(false);
+
+    [Menu("Show Logbook Overlay", "Show quantity percentage and readiness status on logbooks in inventory")]
+    public ToggleNode ShowLogbookOverlay { get; set; } = new ToggleNode(false);
 }
 
 

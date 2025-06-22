@@ -182,7 +182,7 @@ public class HaggleItemAbyssJewel : HaggleItem
 
       using (var client = new HttpClient())
       {
-        client.Timeout = TimeSpan.FromSeconds(5);
+        client.Timeout = TimeSpan.FromSeconds(10);
         client.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
         client.DefaultRequestHeaders.Add("Accept-Language", "de;q=0.5");
         client.DefaultRequestHeaders.Add("Cache-Control", "max-age=0");

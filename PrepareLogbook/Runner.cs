@@ -148,6 +148,7 @@ public class Runner
       // Use chaos orbs - process each logbook individually
       foreach (var l in Inventory.Logbooks)
       {
+        Log.Debug($"Processing logbook: {l.Item.RenderName}");
         if (l.IsCorrupted) continue;
         await l.Hover();
 
@@ -181,10 +182,18 @@ public class Runner
         needsMorePasses = false;
 
         // Hover over any un-hovered logbooks to update their tooltips before processing
-        foreach (var l in Inventory.Logbooks)
+        try
         {
-          if (l == null || l.IsCorrupted || l.IsHovered) continue;
-          await l.Hover();
+          foreach (var l in Inventory.Logbooks)
+          {
+            if (l == null || l.IsCorrupted || l.IsHovered) continue;
+            await l.Hover();
+          }
+        }
+        catch (Exception e)
+        {
+          Log.Error($"Error hovering over logbook: {e.Message}");
+          Log.Error($"Error hovering over logbook: {e.StackTrace}");
         }
 
         // Get all logbooks that need processing
@@ -256,7 +265,7 @@ public class Runner
     var settings = TujenMem.Instance.Settings.PrepareLogbookSettings;
     var mapInfo = l.Data.MapInfo;
 
-    bool isQuantityTooLow = l.Quantity < settings.MinQuantity;
+    bool isQuantityTooLow = (l.Quantity ?? 0) < settings.MinQuantity;
     bool hasBadMods = l.Mods.Any(entry => badMods.Any(term => entry.Contains(term)));
 
     if (isQuantityTooLow || hasBadMods)
