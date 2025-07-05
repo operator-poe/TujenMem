@@ -222,7 +222,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         var existingItems = Stash.Inventory.GetItemsToStash(10, 11);
 
         // Combine and remove duplicates
-        var itemsToStash = newItems.Concat(existingItems).Distinct().OrderBy(x => x.PosX).ThenBy(x => x.PosY).ToList();
+        var itemsToStash = newItems.Concat(existingItems).DistinctBy(x => x.PosX * 1000 + x.PosY).OrderBy(x => x.PosX).ThenBy(x => x.PosY).ToList();
 
         Log.Debug($"Found {itemsToStash.Count} items to stash ({newItems.Count} new, {existingItems.Count} existing)");
 
@@ -234,16 +234,12 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 if (item?.Item != null)
                 {
                     await InputAsync.ClickElement(item.GetClientRect());
-                    await InputAsync.Wait();
                 }
             }
             await InputAsync.KeyUp(Keys.ControlKey);
         }
 
         Log.Debug("Inventory emptied");
-
-        // Update the baseline snapshot to reflect the current state after stashing
-        Stash.Inventory.CreateBaselineSnapshot();
 
         await FindAndClickTujen();
         await InputAsync.Wait();
@@ -459,6 +455,19 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         while (_process.CanRun() || Settings.DebugOnly)
         {
             _process.InitializeWindow();
+
+            // Check if item count is below 10 and instantly reroll if so
+            var itemCount = GameController.IngameState.IngameUi.HaggleWindow.InventoryItems.Count;
+            Log.Debug($"Current item count: {itemCount}");
+
+            if (itemCount < 10)
+            {
+                Log.Debug("Item count below 10, instantly rerolling window");
+                await ReRollWindow();
+                await InputAsync.WaitX(3);
+                continue;
+            }
+
             await _process.Run();
             if (Settings.DebugOnly)
             {
