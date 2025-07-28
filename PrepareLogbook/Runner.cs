@@ -148,6 +148,16 @@ public class Runner
       // Use chaos orbs - process each logbook individually
       foreach (var l in Inventory.Logbooks)
       {
+        if (l.IsCorrupted) continue;
+        if (l.Rarity == ItemRarity.Normal)
+        {
+          await Stash.Alchemy.Use(l.Position);
+        }
+      }
+      await Stash.Alchemy.Release();
+      await Stash.Regal.Release();
+      foreach (var l in Inventory.Logbooks)
+      {
         Log.Debug($"Processing logbook: {l.Item.RenderName}");
         if (l.IsCorrupted) continue;
         await l.Hover();
