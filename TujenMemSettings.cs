@@ -380,6 +380,9 @@ public class TujenMemSettings : ISettings
         Values = new List<string> { "None", "Debug", "Error" },
         Value = "Error"
     };
+
+    [Menu("Empty Inventory On Stop After Current Window", "If enabled, will empty inventory when using the stop-after-current-window hotkey.")]
+    public ToggleNode EmptyInventoryOnStopAfterCurrentWindow { get; set; } = new ToggleNode(true);
 }
 
 [Submenu(CollapsedByDefault = true)]
@@ -387,6 +390,7 @@ public class HotKeySettings
 {
     public HotkeyNode StartHotKey { get; set; } = new HotkeyNode(Keys.F1);
     public HotkeyNode StopHotKey { get; set; } = new HotkeyNode(Keys.Delete);
+    public HotkeyNode StopAfterCurrentWindowHotKey { get; set; } = new HotkeyNode(Keys.Insert);
     public HotkeyNode RollAndBlessHotKey { get; set; } = new HotkeyNode(Keys.F4);
     public HotkeyNode IdentifyHotKey { get; set; } = new HotkeyNode(Keys.F9);
     public HotkeyNode InventoryHotKey { get; set; } = new HotkeyNode(Keys.I);
@@ -563,7 +567,7 @@ public class PrepareLogbookSettings
     [JsonIgnore]
     public CustomNode AreaOrderNode { get; set; }
 
-    public RangeNode<int> MinQuantity { get; set; } = new RangeNode<int>(60, 1, 120);
+    public RangeNode<int> MinQuantity { get; set; } = new RangeNode<int>(60, 1, 200);
     public RangeNode<int> MinScarabsT17 { get; set; } = new RangeNode<int>(100, 0, 200);
     public RangeNode<int> MinMapsT17 { get; set; } = new RangeNode<int>(100, 0, 200);
     public RangeNode<int> MinCurrencyT17 { get; set; } = new RangeNode<int>(100, 0, 200);

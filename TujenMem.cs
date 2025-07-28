@@ -25,6 +25,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     public HaggleState HaggleState = HaggleState.Idle;
 
     private bool _areaHasVorana = false;
+    private bool _stopAfterCurrentWindow = false;
+    private bool _wasStoppedAfterCurrentWindow = false;
 
     public override bool Initialise()
     {
@@ -40,6 +42,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Settings.HotKeySettings.StartHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StartHotKey); };
         Input.RegisterKey(Settings.HotKeySettings.StopHotKey);
         Settings.HotKeySettings.StopHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StopHotKey); };
+        Input.RegisterKey(Settings.HotKeySettings.StopAfterCurrentWindowHotKey);
+        Settings.HotKeySettings.StopAfterCurrentWindowHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StopAfterCurrentWindowHotKey); };
         Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey);
         Settings.HotKeySettings.RollAndBlessHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey); };
         Input.RegisterKey(Settings.HotKeySettings.IdentifyHotKey);
@@ -103,7 +107,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
         }
 
-        if (Settings.HotKeySettings.StartHotKey.PressedOnce())
+        if (Settings.HotKeySettings.StartHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.StartHotKey.Value))
         {
             Log.Debug("Start Hotkey pressed");
             if (Core.ParallelRunner.FindByName(_coroutineName) == null)
@@ -124,7 +128,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 HaggleState = HaggleState.Cancelling;
             }
         }
-        if (Settings.HotKeySettings.RollAndBlessHotKey.PressedOnce())
+        if (Settings.HotKeySettings.RollAndBlessHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.RollAndBlessHotKey.Value))
         {
             Log.Debug("Roll and Bless Hotkey pressed");
             if (Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless) == null)
@@ -138,7 +142,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 HaggleState = HaggleState.Cancelling;
             }
         }
-        if (Settings.HotKeySettings.IdentifyHotKey.PressedOnce())
+        if (Settings.HotKeySettings.IdentifyHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.IdentifyHotKey.Value))
         {
             Log.Debug("Identify Items Hotkey Pressed");
             if (Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless + "_Identify") == null)
@@ -158,7 +162,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             StopAllRoutines();
             HaggleState = HaggleState.Idle;
         }
-        if (Settings.HotKeySettings.StopHotKey.PressedOnce())
+        if (Settings.HotKeySettings.StopHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.StopHotKey.Value))
         {
             Log.Debug("Stop Hotkey pressed");
             StopAllRoutines();
@@ -167,6 +171,19 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         if (Settings.SillyOrExperimenalFeatures.EnableBuyAssistance)
             BuyAssistance.BuyAssistance.Tick();
 
+        if (Settings.HotKeySettings.StopAfterCurrentWindowHotKey.PressedOnce())
+        {
+            if (!_stopAfterCurrentWindow)
+            {
+                Log.Debug("StopAfterCurrentWindowHotKey pressed - will stop after current window");
+                _stopAfterCurrentWindow = true;
+            }
+        }
+        // Show debug info if stop after current window is active
+        if (_stopAfterCurrentWindow && HaggleState == HaggleState.Running)
+        {
+            Log.Debug("Stop after current window is active - will stop after next reroll");
+        }
 
         return null;
     }
@@ -423,6 +440,9 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private HaggleProcess _process = null;
     private async SyncTask<bool> HaggleCoroutine()
     {
+        // Reset the stop after current window flag
+        _stopAfterCurrentWindow = false;
+
         // Interject here for Gwennen
         if (Settings.Gwennen.EnableGwennen && GwennenRunner.CanGwennen())
         {
@@ -492,14 +512,37 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                     StopAllRoutines();
                     return false;
                 }
+
+                // Check if user wants to stop after current window
+                if (_stopAfterCurrentWindow)
+                {
+                    Log.Debug("Stopping after current window as requested");
+                    _stopAfterCurrentWindow = false;
+                    _wasStoppedAfterCurrentWindow = true;
+                    break;
+                }
             }
             await InputAsync.Wait();
         }
 
-
-        if (!Settings.DebugOnly && Settings.EmptyInventoryAfterHaggling)
+        // After the main loop, handle inventory emptying based on how the coroutine was stopped
+        if (!Settings.DebugOnly)
         {
-            await EmptyInventoryCoRoutine();
+            if (_wasStoppedAfterCurrentWindow)
+            {
+                if (Settings.EmptyInventoryOnStopAfterCurrentWindow)
+                {
+                    await EmptyInventoryCoRoutine();
+                }
+                else
+                {
+                    Log.Debug("Skipping inventory emptying due to setting");
+                }
+            }
+            else if (Settings.EmptyInventoryAfterHaggling)
+            {
+                await EmptyInventoryCoRoutine();
+            }
         }
 
         StopAllRoutines();
@@ -533,6 +576,8 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         InputAsync.LOCK_CONTROLLER = false;
         InputAsync.IControllerEnd();
         HaggleState = HaggleState.Idle;
+        _stopAfterCurrentWindow = false;
+        _wasStoppedAfterCurrentWindow = false;
         if (_process != null && _process.CurrentWindow != null)
         {
             _process.CurrentWindow.ClearItems();
