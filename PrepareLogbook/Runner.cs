@@ -154,15 +154,24 @@ public class Runner
           await Stash.Alchemy.Use(l.Position);
         }
       }
+      Log.Debug($"Inventory.Logbooks: {Inventory.Logbooks.Count}");
+
       await Stash.Alchemy.Release();
-      await Stash.Regal.Release();
       foreach (var l in Inventory.Logbooks)
       {
         Log.Debug($"Processing logbook: {l.Item.RenderName}");
         if (l.IsCorrupted) continue;
         await l.Hover();
 
-        if (!ShouldContinueProcessing(l, badMods)) continue;
+        try
+        {
+          if (!ShouldContinueProcessing(l, badMods)) continue;
+        }
+        catch (Exception e)
+        {
+          Log.Error($"Error processing logbook: {e.Message}");
+          Log.Error($"Error processing logbook: {e.StackTrace}");
+        }
         do
         {
           // Items should not be magic anymore but just in case do a last check (for fractures for example)
@@ -283,7 +292,9 @@ public class Runner
       return true;
     }
 
-    bool isHighTier = mapInfo.Tier >= 17;
+    bool isHighTier = mapInfo.Tier >= 17 || mapInfo.Influence.Memory;
+    Log.Debug($"Is high tier: {isHighTier}");
+    Log.Debug($"Map info: {mapInfo.Tier} {mapInfo.Influence.Memory}");
 
     if (!isHighTier)
     {
