@@ -371,7 +371,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             Log.Debug("Exited Haggle window");
         }
 
-        var tujenDialog = GameController.IngameState.IngameUi.ExpeditionNpcDialog;
+        var tujenDialog = GameController.IngameState.IngameUi.ExpeditionWindow;
         if (tujenDialog is { IsVisible: true })
         {
             await InputAsync.KeyPress(Keys.Escape);

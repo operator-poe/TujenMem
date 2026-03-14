@@ -35,7 +35,7 @@ public class Inventory
         {
           GridPosition = inventoryItems.ElementAt(i).GetClientRect(),
           Quality = inventoryItems.ElementAt(i).Item.GetComponent<Quality>()?.ItemQuality ?? 0,
-          Tier = inventoryItems.ElementAt(i).Item.GetComponent<ExileCore.PoEMemory.Components.Map>()?.Tier ?? 0,
+          Tier = inventoryItems.ElementAt(i).Item.GetComponent<ExileCore.PoEMemory.Components.MapKey>()?.Tier ?? 0,
         });
       }
     }

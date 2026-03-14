@@ -38,7 +38,7 @@ public class HaggleProcessWindow
 
       if (type == "Map")
       {
-        var map = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Map>();
+        var map = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.MapKey>();
         var mods = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
         var tier = map.Tier;
         var isUnique = mods.ItemRarity == ExileCore.Shared.Enums.ItemRarity.Unique;
