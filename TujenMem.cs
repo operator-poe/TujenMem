@@ -1,4 +1,4 @@
-﻿using SharpDX;
+using SharpDX;
 using ExileCore;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared;
@@ -416,19 +416,19 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         {
             Error.Add("Startup error", "No coins found in Haggle window.\nPlease make sure you have coins.\n(Check HUD log for errors)");
         }
-        if (HaggleStock.Lesser == 0 && Settings.ArtifactValueSettings.EnableLesser)
+        if (HaggleStock.Lesser == 0 && Settings.ArtifactValueSettings.EnableLesser && !Settings.ArtifactValueSettings.IgnoreArtifactMinimumCheck)
         {
             Error.Add("Startup error", "No Lesser artifacts found in Haggle window.\nPlease make sure you have Lesser artifacts.\n(Check HUD log for errors)");
         }
-        if (HaggleStock.Greater == 0 && Settings.ArtifactValueSettings.EnableGreater)
+        if (HaggleStock.Greater == 0 && Settings.ArtifactValueSettings.EnableGreater && !Settings.ArtifactValueSettings.IgnoreArtifactMinimumCheck)
         {
             Error.Add("Startup error", "No Greater artifacts found in Haggle window.\nPlease make sure you have Greater artifacts.\n(Check HUD log for errors)");
         }
-        if (HaggleStock.Grand == 0 && Settings.ArtifactValueSettings.EnableGrand)
+        if (HaggleStock.Grand == 0 && Settings.ArtifactValueSettings.EnableGrand && !Settings.ArtifactValueSettings.IgnoreArtifactMinimumCheck)
         {
             Error.Add("Startup error", "No Grand artifacts found in Haggle window.\nPlease make sure you have Grand artifacts.\n(Check HUD log for errors)");
         }
-        if (HaggleStock.Exceptional == 0 && Settings.ArtifactValueSettings.EnableExceptional)
+        if (HaggleStock.Exceptional == 0 && Settings.ArtifactValueSettings.EnableExceptional && !Settings.ArtifactValueSettings.IgnoreArtifactMinimumCheck)
         {
             Error.Add("Startup error", "No Exceptional artifacts found in Haggle window.\nPlease make sure you have Exceptional artifacts.\n(Check HUD log for errors)");
         }

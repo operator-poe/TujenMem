@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using ExileCore.Shared.Attributes;
@@ -421,6 +421,9 @@ public class HaggleMultiplierSettings
 [Submenu(CollapsedByDefault = true)]
 public class ArtifactValueSettings
 {
+
+    [Menu("Ignore Artifact Minimum Check", "If enabled, bypasses all artifact quantity checks and forces the process to run regardless of artifact amounts. WARNING: Process may fail if you run out of artifacts.")]
+    public ToggleNode IgnoreArtifactMinimumCheck { get; set; } = new ToggleNode(false);
 
     [Menu("Enable Lesser", "If disabled, Lesser Black Scythe Artifact will be ignored")]
     public ToggleNode EnableLesser { get; set; } = new ToggleNode(true);
