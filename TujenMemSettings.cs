@@ -388,13 +388,13 @@ public class TujenMemSettings : ISettings
 [Submenu(CollapsedByDefault = true)]
 public class HotKeySettings
 {
-    public HotkeyNode StartHotKey { get; set; } = new HotkeyNode(Keys.F1);
-    public HotkeyNode StopHotKey { get; set; } = new HotkeyNode(Keys.Delete);
-    public HotkeyNode StopAfterCurrentWindowHotKey { get; set; } = new HotkeyNode(Keys.Insert);
-    public HotkeyNode RollAndBlessHotKey { get; set; } = new HotkeyNode(Keys.F4);
-    public HotkeyNode IdentifyHotKey { get; set; } = new HotkeyNode(Keys.F9);
-    public HotkeyNode InventoryHotKey { get; set; } = new HotkeyNode(Keys.I);
-    public HotkeyNode TestHotKey { get; set; } = new HotkeyNode(Keys.F3);
+    public HotkeyNodeV2 StartHotKey { get; set; } = new HotkeyNodeV2(Keys.F1);
+    public HotkeyNodeV2 StopHotKey { get; set; } = new HotkeyNodeV2(Keys.Delete);
+    public HotkeyNodeV2 StopAfterCurrentWindowHotKey { get; set; } = new HotkeyNodeV2(Keys.Insert);
+    public HotkeyNodeV2 RollAndBlessHotKey { get; set; } = new HotkeyNodeV2(Keys.F4);
+    public HotkeyNodeV2 IdentifyHotKey { get; set; } = new HotkeyNodeV2(Keys.F9);
+    public HotkeyNodeV2 InventoryHotKey { get; set; } = new HotkeyNodeV2(Keys.I);
+    public HotkeyNodeV2 TestHotKey { get; set; } = new HotkeyNodeV2(Keys.F3);
 }
 
 [Submenu(CollapsedByDefault = true)]

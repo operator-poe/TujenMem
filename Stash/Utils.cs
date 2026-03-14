@@ -18,8 +18,8 @@ public static class Utils
   {
     if (GameController.IngameState.IngameUi.InventoryPanel != null && GameController.IngameState.IngameUi.InventoryPanel.IsVisible)
     {
-      await InputAsync.KeyDown(TujenMem.Instance.Settings.HotKeySettings.InventoryHotKey.Value);
-      await InputAsync.KeyUp(TujenMem.Instance.Settings.HotKeySettings.InventoryHotKey.Value);
+      await InputAsync.KeyDown(TujenMem.Instance.Settings.HotKeySettings.InventoryHotKey.Value.Key);
+      await InputAsync.KeyUp(TujenMem.Instance.Settings.HotKeySettings.InventoryHotKey.Value.Key);
       await InputAsync.Wait(() => !GameController.IngameState.IngameUi.InventoryPanel.IsVisible, 1000, "Inventory not closed");
     }
     if (GameController.IngameState.IngameUi.StashElement != null && GameController.IngameState.IngameUi.StashElement.IsVisible)

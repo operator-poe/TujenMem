@@ -32,7 +32,9 @@ public class RestartableTask
     MaxRetries = maxRetries;
     CurrentRetries = 0;
     LastMouseMove = DateTime.Now;
+#pragma warning disable CS0612
     LastMousePosition = Input.MousePosition;
+#pragma warning restore CS0612
     OnInterrupt = onInterrupt;
     StartStuckDetection();
   }
@@ -46,7 +48,9 @@ public class RestartableTask
       {
         if (!_isPaused)
         {
+#pragma warning disable CS0612
           var currentPos = Input.MousePosition;
+#pragma warning restore CS0612
           if (!currentPos.Equals(LastMousePosition))
           {
             LastMouseMove = DateTime.Now;
@@ -124,7 +128,9 @@ public class RestartableTask
   {
     Task = TaskFactory();
     LastMouseMove = DateTime.Now;
+#pragma warning disable CS0612
     LastMousePosition = Input.MousePosition;
+#pragma warning restore CS0612
   }
 }
 

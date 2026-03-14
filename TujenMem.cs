@@ -38,20 +38,20 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Settings.SetDefaults();
         Settings.PrepareLogbookSettings.SetDefaults();
 
-        Input.RegisterKey(Settings.HotKeySettings.StartHotKey);
-        Settings.HotKeySettings.StartHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StartHotKey); };
-        Input.RegisterKey(Settings.HotKeySettings.StopHotKey);
-        Settings.HotKeySettings.StopHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StopHotKey); };
-        Input.RegisterKey(Settings.HotKeySettings.StopAfterCurrentWindowHotKey);
-        Settings.HotKeySettings.StopAfterCurrentWindowHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StopAfterCurrentWindowHotKey); };
-        Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey);
-        Settings.HotKeySettings.RollAndBlessHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey); };
-        Input.RegisterKey(Settings.HotKeySettings.IdentifyHotKey);
-        Settings.HotKeySettings.IdentifyHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.IdentifyHotKey); };
-        Input.RegisterKey(Settings.HotKeySettings.InventoryHotKey);
-        Settings.HotKeySettings.InventoryHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.InventoryHotKey); };
-        Input.RegisterKey(Settings.HotKeySettings.TestHotKey);
-        Settings.HotKeySettings.TestHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.TestHotKey); };
+        Input.RegisterKey(Settings.HotKeySettings.StartHotKey.Value);
+        Settings.HotKeySettings.StartHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StartHotKey.Value); };
+        Input.RegisterKey(Settings.HotKeySettings.StopHotKey.Value);
+        Settings.HotKeySettings.StopHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StopHotKey.Value); };
+        Input.RegisterKey(Settings.HotKeySettings.StopAfterCurrentWindowHotKey.Value);
+        Settings.HotKeySettings.StopAfterCurrentWindowHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StopAfterCurrentWindowHotKey.Value); };
+        Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey.Value);
+        Settings.HotKeySettings.RollAndBlessHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.RollAndBlessHotKey.Value); };
+        Input.RegisterKey(Settings.HotKeySettings.IdentifyHotKey.Value);
+        Settings.HotKeySettings.IdentifyHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.IdentifyHotKey.Value); };
+        Input.RegisterKey(Settings.HotKeySettings.InventoryHotKey.Value);
+        Settings.HotKeySettings.InventoryHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.InventoryHotKey.Value); };
+        Input.RegisterKey(Settings.HotKeySettings.TestHotKey.Value);
+        Settings.HotKeySettings.TestHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.TestHotKey.Value); };
 
         Ninja.CheckIntegrity();
         Task.Run(Ninja.Parse);
@@ -107,7 +107,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
         }
 
-        if (Settings.HotKeySettings.StartHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.StartHotKey.Value))
+        if (Settings.HotKeySettings.StartHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.StartHotKey.Value.Key))
         {
             Log.Debug("Start Hotkey pressed");
             if (Core.ParallelRunner.FindByName(_coroutineName) == null)
@@ -128,7 +128,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 HaggleState = HaggleState.Cancelling;
             }
         }
-        if (Settings.HotKeySettings.RollAndBlessHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.RollAndBlessHotKey.Value))
+        if (Settings.HotKeySettings.RollAndBlessHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.RollAndBlessHotKey.Value.Key))
         {
             Log.Debug("Roll and Bless Hotkey pressed");
             if (Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless) == null)
@@ -142,7 +142,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 HaggleState = HaggleState.Cancelling;
             }
         }
-        if (Settings.HotKeySettings.IdentifyHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.IdentifyHotKey.Value))
+        if (Settings.HotKeySettings.IdentifyHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.IdentifyHotKey.Value.Key))
         {
             Log.Debug("Identify Items Hotkey Pressed");
             if (Core.ParallelRunner.FindByName(PrepareLogbook.Runner.CoroutineNameRollAndBless + "_Identify") == null)
@@ -162,7 +162,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             StopAllRoutines();
             HaggleState = HaggleState.Idle;
         }
-        if (Settings.HotKeySettings.StopHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.StopHotKey.Value))
+        if (Settings.HotKeySettings.StopHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.StopHotKey.Value.Key))
         {
             Log.Debug("Stop Hotkey pressed");
             StopAllRoutines();
@@ -856,7 +856,6 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                 // Draw legend
                 var legendX = inventoryRect.X;
                 var legendY = inventoryRect.Bottom + 10;
-                var legendSpacing = 150;
 
                 drawList.AddText(new System.Numerics.Vector2(legendX, legendY), 0xFFFFFFFF, "Legend:");
                 drawList.AddText(new System.Numerics.Vector2(legendX, legendY + 15), 0xFFFF0000, "BLUE = Baseline items");
