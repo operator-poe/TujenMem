@@ -578,7 +578,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         HaggleState = HaggleState.Idle;
         _stopAfterCurrentWindow = false;
         _wasStoppedAfterCurrentWindow = false;
-        if (_process != null && _process.CurrentWindow != null)
+        if (_process != null && _process.CurrentWindow != null && !Settings.DebugOnly)
         {
             _process.CurrentWindow.ClearItems();
         }

@@ -36,7 +36,7 @@ public class HaggleProcessWindow
       var type = baseItem.ClassName;
       var address = inventoryItem.Address;
 
-      if (type == "Map")
+      if (type == "Map" || type == "MapKey")
       {
         var map = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.MapKey>();
         var mods = inventoryItem.Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
@@ -48,7 +48,10 @@ public class HaggleProcessWindow
         {
           foreach (var mod in mods.ItemMods)
           {
-            if (mod.Name.Contains("Elder") || mod.Name.Contains("Shaper") || mod.Name.Contains("Conqueror"))
+            if (mod.Name.Contains("Elder") || mod.Name.Contains("Shaper") || mod.Name.Contains("Conqueror") ||
+                mod.Name.Contains("Drox") || mod.Name.Contains("Veritania") || mod.Name.Contains("Al-Hezmin") ||
+                mod.Name.Contains("Baran") || mod.Name.Contains("Eradicator") || mod.Name.Contains("Enslaver") ||
+                mod.Name.Contains("Purifier") || mod.Name.Contains("Constrictor"))
             {
               isInfluenced = true;
               break;
@@ -56,19 +59,25 @@ public class HaggleProcessWindow
           }
         }
 
+        var baseName = baseItem.BaseName;
+        var ninjaLookupName = ComputeMapNinjaLookupName(baseName, tier, isUnique, mods?.UniqueName);
+
         Items.Add(new HaggleItemMap
         {
           Address = address,
           Position = inventoryItem.GetClientRect(),
-          Name = isUnique ? mods.UniqueName : baseItem.BaseName,
+          Name = isUnique ? mods.UniqueName : baseName,
           Type = type,
           Amount = stack?.Size ?? 1,
           Value = 0,
           Price = null,
           MapTier = tier,
           IsUnique = isUnique,
-          IsInfluenced = isInfluenced
+          IsInfluenced = isInfluenced,
+          NinjaLookupName = ninjaLookupName
         });
+
+        Log.Debug($"Map read: {baseName}, Tier: {tier}, IsUnique: {isUnique}, IsInfluenced: {isInfluenced}, NinjaLookup: {ninjaLookupName}");
 
         continue;
       }
@@ -204,7 +213,11 @@ public class HaggleProcessWindow
       if (item is HaggleItemMap)
       {
         var map = item as HaggleItemMap;
-        if ((!TujenMem.Instance.Settings.MapsEnabled || map.MapTier < TujenMem.Instance.Settings.MinMapTier) && !map.IsUnique && !map.IsInfluenced)
+        var mapsEnabled = TujenMem.Instance.Settings.MapsEnabled;
+        var minTier = TujenMem.Instance.Settings.MinMapTier;
+        var shouldReject = (!mapsEnabled || map.MapTier < minTier) && !map.IsUnique && !map.IsInfluenced;
+        Log.Debug($"Map filter: {map.Name}, Tier: {map.MapTier}, MinTier: {minTier}, MapsEnabled: {mapsEnabled}, IsUnique: {map.IsUnique}, IsInfluenced: {map.IsInfluenced}, Rejected: {shouldReject}");
+        if (shouldReject)
         {
           item.State = HaggleItemState.Rejected;
           continue;
@@ -349,10 +362,15 @@ public class HaggleProcessWindow
         item.Value = 0;
         NinjaItem ninjaItem = null;
 
-
-        if (Ninja.Items.ContainsKey(item.Name))
+        var lookupName = item.Name;
+        if (item is HaggleItemMap mapItem && !string.IsNullOrEmpty(mapItem.NinjaLookupName))
         {
-          ninjaItem = Ninja.Items[item.Name].Find(x => x.ChaosValue > 0);
+          lookupName = mapItem.NinjaLookupName;
+        }
+
+        if (Ninja.Items.ContainsKey(lookupName))
+        {
+          ninjaItem = Ninja.Items[lookupName].Find(x => x.ChaosValue > 0);
           if (item is HaggleItemClusterJewel)
           {
             var cluster = item as HaggleItemClusterJewel;
@@ -448,7 +466,8 @@ public class HaggleProcessWindow
         }
         else
         {
-          Error.AddAndShow("Error while pricing item", $"There was no equivalent Ninja entry for {item.Name}.\nPlease check your item mappings and your Ninja settings.");
+          var errorName = item is HaggleItemMap m && !string.IsNullOrEmpty(m.NinjaLookupName) ? m.NinjaLookupName : item.Name;
+          Error.AddAndShow("Error while pricing item", $"There was no equivalent Ninja entry for '{errorName}'.\nPlease check your item mappings and your Ninja settings.");
           return false;
         }
 
@@ -600,6 +619,33 @@ public class HaggleProcessWindow
     Log.Debug("Clearing items list to free memory");
     Items.Clear();
     CurrentHagglingItem = null;
+  }
+
+  private static readonly HashSet<string> SpecialMapNames = new HashSet<string>
+  {
+    "Vaal Temple Map",
+    "Nightmare Map",
+    "Shaper Guardian Map"
+  };
+
+  private static string ComputeMapNinjaLookupName(string baseName, int tier, bool isUnique, string uniqueName)
+  {
+    if (isUnique && !string.IsNullOrEmpty(uniqueName))
+    {
+      return uniqueName;
+    }
+
+    if (SpecialMapNames.Contains(baseName))
+    {
+      return baseName;
+    }
+
+    if (baseName.Contains("Blighted"))
+    {
+      return $"Blighted Map (Tier {tier})";
+    }
+
+    return $"Map (Tier {tier})";
   }
 
 }

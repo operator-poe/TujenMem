@@ -156,9 +156,15 @@ public class TujenMemSettings : ISettings
                     ImGui.InputFloat("##CustomPriceValue", ref customPriceValue);
                     ImGui.SameLine();
                     ImGui.Text("Item Price");
-                    ImGui.InputTextWithHint("##CustomPriceExpression", "Expression", ref customPriceExpression, 100);
+                    ImGui.InputTextWithHint("##CustomPriceExpression", "Expression, use {Item Name}", ref customPriceExpression, 100);
                     ImGui.SameLine();
                     ImGui.Text("(or) Expression");
+                    ImGui.SameLine();
+                    HelpMarker("Reference other items as {Exact Item Name}, for example {Harbinger's Orb}/20.");
+                    if (!string.IsNullOrWhiteSpace(customPriceExpression) && customPriceExpression.Contains('\'') && !customPriceExpression.Contains("{"))
+                    {
+                        ImGui.Text("Tip: wrap item names in braces, e.g. {Tul's Breachstone}/30");
+                    }
                     if (ImGui.Button("Add to List"))
                     {
                         CustomPrices.Add((customPriceInput, customPriceValue > 0f ? customPriceValue : null, customPriceExpression));

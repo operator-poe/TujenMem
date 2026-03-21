@@ -28,13 +28,26 @@ public class NinjaItemMap : NinjaItem
 {
     public int Tier { get; set; }
     public bool Influenced { get; set; }
-
     public bool Unique { get; set; }
+    public string BaseType { get; set; }
 
-    public NinjaItemMap(string name, float chaosValue, int tier, bool unique) : base(name, chaosValue)
+    private static readonly Regex TierRegex = new Regex(@"Tier (\d+)", RegexOptions.Compiled);
+
+    public NinjaItemMap(string name, float chaosValue, int tier, bool unique, string baseType = null) : base(name, chaosValue)
     {
         Tier = tier;
         Unique = unique;
+        BaseType = baseType ?? name;
+    }
+
+    public static int ParseTierFromName(string name)
+    {
+        var match = TierRegex.Match(name);
+        if (match.Success && int.TryParse(match.Groups[1].Value, out int tier))
+        {
+            return tier;
+        }
+        return 0;
     }
 }
 
@@ -83,7 +96,7 @@ public class JSONItemLine
 
 public class JSONItemLineMap : JSONItemLine
 {
-    public int MapTier { get; set; }
+    public string BaseType { get; set; }
     public int ItemClass { get; set; }
 }
 
@@ -340,11 +353,14 @@ public class Ninja
 
                 case DownloadType.Items:
                     var content = await File.ReadAllTextAsync(filePath);
-                    if (dl.Item1 == "Map" || dl.Item1 == "UniqueMap")
+                    if (dl.Item1 == "Map" || dl.Item1 == "UniqueMap" || dl.Item1 == "BlightedMap")
                     {
                         var isUnique = dl.Item1 == "UniqueMap";
                         var parsed = Newtonsoft.Json.JsonConvert.DeserializeObject<JSONFile<JSONItemLineMap>>(content);
-                        var lines = parsed.Lines.Select(l => new NinjaItemMap(l.Name, l.ChaosValue, l.MapTier, isUnique)).ToList();
+                        var lines = parsed.Lines.Select(l => {
+                            var tier = NinjaItemMap.ParseTierFromName(l.BaseType ?? l.Name);
+                            return new NinjaItemMap(l.Name, l.ChaosValue, tier, isUnique, l.BaseType ?? l.Name);
+                        }).ToList();
                         result.AddRange(lines);
                     }
                     else if (dl.Item1 == "SkillGem")
@@ -379,8 +395,10 @@ public class Ninja
         try
         {
             var dict = items.GroupBy(x => x.Name).ToDictionary(x => x.Key, x => x.ToList());
-            foreach (var pr in TujenMem.Instance.Settings.CustomPrices)
+            var customPrices = TujenMem.Instance.Settings.CustomPrices;
+            for (int i = 0; i < customPrices.Count; i++)
             {
+                var pr = customPrices[i];
                 var customPrice = pr.Item2 != null ? new CustomPrice(pr.Item1, pr.Item2 ?? 0f) : new CustomPrice(pr.Item1, pr.Item3);
                 var item = dict.ContainsKey(customPrice.Name) ? dict[customPrice.Name].First() : new NinjaItem(customPrice.Name, 0);
                 if (customPrice.Value != null)
@@ -391,7 +409,14 @@ public class Ninja
                 {
                     try
                     {
-                        string replacedExpr = dict.Aggregate(customPrice.Expression, (current, pair) => current.Replace($"{{{pair.Key}}}", pair.Value.First().ChaosValue.ToString(CultureInfo.InvariantCulture)));
+                        string normalizedExpr = NormalizeCustomPriceExpression(customPrice.Expression, dict);
+                        if (!string.Equals(normalizedExpr, customPrice.Expression, StringComparison.Ordinal))
+                        {
+                            customPrices[i] = (pr.Item1, pr.Item2, normalizedExpr);
+                            customPrice.Expression = normalizedExpr;
+                        }
+
+                        string replacedExpr = ReplaceCustomPriceReferences(customPrice.Expression, dict);
                         float result = Evaluate(replacedExpr);
                         item.ChaosValue = result;
                     }
@@ -410,6 +435,45 @@ public class Ninja
             return new();
         }
     }
+
+    private static string NormalizeCustomPriceExpression(string expression, Dictionary<string, List<NinjaItem>> dict)
+    {
+        if (string.IsNullOrWhiteSpace(expression))
+        {
+            return expression;
+        }
+
+        var normalized = expression;
+        foreach (var pair in dict.OrderByDescending(x => x.Key.Length))
+        {
+            normalized = WrapBareItemReference(normalized, pair.Key);
+        }
+
+        return normalized;
+    }
+
+    private static string ReplaceCustomPriceReferences(string expression, Dictionary<string, List<NinjaItem>> dict)
+    {
+        var replaced = expression;
+        foreach (var pair in dict.OrderByDescending(x => x.Key.Length))
+        {
+            replaced = replaced.Replace($"{{{pair.Key}}}", pair.Value.First().ChaosValue.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+        }
+
+        return replaced;
+    }
+
+    private static string WrapBareItemReference(string expression, string itemName)
+    {
+        if (string.IsNullOrWhiteSpace(expression) || string.IsNullOrWhiteSpace(itemName))
+        {
+            return expression;
+        }
+
+        var pattern = $@"(?<![\p{{L}}\p{{N}}_{{]){Regex.Escape(itemName)}(?![\p{{L}}\p{{N}}_}}])";
+        return Regex.Replace(expression, pattern, _ => $"{{{itemName}}}");
+    }
+
     private static float Evaluate(string expression)
     {
         DataTable table = new();
