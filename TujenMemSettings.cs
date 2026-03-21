@@ -376,6 +376,9 @@ public class TujenMemSettings : ISettings
     [Menu("Custom Name For Influenced Maps", "Custom name for influenced maps (Shaper, Elder, Conquerer, etc.) (Leave blank to disable")]
     public TextNode CustomNameForInfluencedMaps { get; set; } = new TextNode("Influenced Map");
 
+    [Menu("Price Lv1 Q20 Gems as GCP", "If enabled, level 1 gems with 20% quality are priced as a Gemcutter's Prism instead of their ninja value.")]
+    public ToggleNode PriceLv1Q20GemsAsGCP { get; set; } = new ToggleNode(true);
+
     public PrepareLogbookSettings PrepareLogbookSettings { get; set; } = new PrepareLogbookSettings();
     public SillyOrExperimenalFeatures SillyOrExperimenalFeatures { get; set; } = new SillyOrExperimenalFeatures();
     public Gwennen Gwennen { get; set; } = new Gwennen();

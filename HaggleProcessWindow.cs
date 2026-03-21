@@ -410,9 +410,8 @@ public class HaggleProcessWindow
           else if (item is HaggleItemGem)
           {
             var gem = item as HaggleItemGem;
-            if (gem.Level == 1 && gem.Quality >= 20)
+            if (gem.Level == 1 && gem.Quality >= 20 && TujenMem.Instance.Settings.PriceLv1Q20GemsAsGCP)
             {
-              // Apply price of gemcutters prism
               ninjaItem = Ninja.Items["Gemcutter's Prism"].First();
             }
             else
