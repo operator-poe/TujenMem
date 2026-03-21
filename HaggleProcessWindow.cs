@@ -238,7 +238,7 @@ public class HaggleProcessWindow
     }
   }
 
-  public async SyncTask<bool> GetItemPrices()
+  public async SyncTask<bool> GetItemPrices(IValueStrategy valueStrategy = null)
   {
     Log.Debug("Getting item prices");
     List<(HaggleItem, NinjaItem)> items = new();
@@ -470,17 +470,6 @@ public class HaggleProcessWindow
           return false;
         }
 
-        var itemPrice = item?.Price?.TotalValue() ?? 0;
-        if (itemPrice * TujenMem.Instance.Settings.ArtifactValueSettings.ItemPriceMultiplier.Value >= item.Value)
-        {
-          item.State = HaggleItemState.TooExpensive;
-        }
-        else
-        {
-          item.State = HaggleItemState.Priced;
-        }
-
-
         if (ninjaItem != null)
           items.Add((item, ninjaItem));
 
@@ -488,6 +477,25 @@ public class HaggleProcessWindow
       }
     }
     Log.Debug($"Finished getting item prices. {items.Count} items priced.");
+
+    if (valueStrategy != null)
+    {
+      valueStrategy.EvaluateItems(Items);
+    }
+    else
+    {
+      foreach (var item in Items)
+      {
+        if (item.State != HaggleItemState.Unpriced)
+          continue;
+        var itemPrice = item?.Price?.TotalValue() ?? 0;
+        if (itemPrice * TujenMem.Instance.Settings.ArtifactValueSettings.ItemPriceMultiplier.Value >= item.Value)
+          item.State = HaggleItemState.TooExpensive;
+        else
+          item.State = HaggleItemState.Priced;
+      }
+    }
+
     if (TujenMem.Instance.Settings.SillyOrExperimenalFeatures.EnableStatistics && !TujenMem.Instance.Settings.DebugOnly)
     {
       foreach (var (item, ninjaItem) in items)

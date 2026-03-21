@@ -611,20 +611,40 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         if (Settings.ShowDebugWindow && (HaggleState is HaggleState.Running || Settings.DebugOnly) && GameController.IngameState.IngameUi.HaggleWindow is { IsVisible: true })
         {
             var show = Settings.ShowDebugWindow.Value;
-            // Set next window size
-            ImGui.SetNextWindowSize(new System.Numerics.Vector2(800, 300));
+            var isAdaptive = _process?.ValueStrategy is AdaptiveValueStrategy;
+            var adaptiveStrategy = _process?.ValueStrategy as AdaptiveValueStrategy;
+
+            ImGui.SetNextWindowSize(new System.Numerics.Vector2(isAdaptive ? 1000 : 800, 300));
             ImGui.Begin("Debug Mode Window", ref show);
             Settings.ShowDebugWindow.Value = show;
 
-            if (ImGui.BeginTable("table1", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+            if (isAdaptive && adaptiveStrategy?.Tracker != null)
             {
-                // Header Row
+                var tracker = adaptiveStrategy.Tracker;
+                ImGui.Text($"Strategy: Adaptive | League: {tracker.League} | Updated: {tracker.LastUpdated:HH:mm:ss}");
+                ImGui.Text($"Thresholds - Lesser: {tracker.GetThreshold("Lesser"):F4} ({tracker.GetSampleCount("Lesser")}s) | Greater: {tracker.GetThreshold("Greater"):F4} ({tracker.GetSampleCount("Greater")}s) | Grand: {tracker.GetThreshold("Grand"):F4} ({tracker.GetSampleCount("Grand")}s) | Exceptional: {tracker.GetThreshold("Exceptional"):F4} ({tracker.GetSampleCount("Exceptional")}s)");
+                ImGui.Separator();
+            }
+            else
+            {
+                ImGui.Text("Strategy: Manual");
+                ImGui.Separator();
+            }
+
+            var columnCount = isAdaptive ? 8 : 6;
+            if (ImGui.BeginTable("table1", columnCount, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+            {
                 ImGui.TableSetupColumn("Name");
                 ImGui.TableSetupColumn("Type");
                 ImGui.TableSetupColumn("Amount");
                 ImGui.TableSetupColumn("Value");
                 ImGui.TableSetupColumn("Price");
                 ImGui.TableSetupColumn("State");
+                if (isAdaptive)
+                {
+                    ImGui.TableSetupColumn("Ratio");
+                    ImGui.TableSetupColumn("Threshold");
+                }
                 ImGui.TableHeadersRow();
 
                 if (_process != null && _process.CurrentWindow != null)
@@ -635,7 +655,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                         float targetScrollY = 0;
                         float rowHeight = ImGui.GetTextLineHeightWithSpacing();
                         float windowHeight = ImGui.GetWindowHeight();
-                        float scrollMargin = rowHeight * 2; // 2 rows worth of margin
+                        float scrollMargin = rowHeight * 2;
 
                         foreach (HaggleItem haggleItem in _process.CurrentWindow.Items)
                         {
@@ -643,7 +663,6 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                             if (haggleItem == _process.CurrentWindow.CurrentHagglingItem)
                             {
                                 ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(new System.Numerics.Vector4(1, 0.5f, 0, 0.3f)));
-                                // Calculate target scroll position with margin
                                 targetScrollY = currentRow * rowHeight - scrollMargin;
                             }
                             ImGui.TableNextColumn();
@@ -665,17 +684,41 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                             ImGui.Text(Math.Round(haggleItem.Price?.TotalValue() ?? 0, 2).ToString(CultureInfo.InvariantCulture) + "c");
                             ImGui.TableNextColumn();
                             ImGui.Text(haggleItem.State.ToString());
+
+                            if (isAdaptive && adaptiveStrategy?.Tracker != null)
+                            {
+                                ImGui.TableNextColumn();
+                                if (haggleItem.Price != null && haggleItem.Price.Value > 0 && haggleItem.Value > 0)
+                                {
+                                    var ratio = haggleItem.Value / haggleItem.Price.Value;
+                                    ImGui.Text(ratio.ToString("F4"));
+                                }
+                                else
+                                {
+                                    ImGui.Text("-");
+                                }
+                                ImGui.TableNextColumn();
+                                var category = haggleItem.Price != null ? ArtifactRatioTracker.GetArtifactCategory(haggleItem.Price.Name) : null;
+                                if (category != null)
+                                {
+                                    var baseThreshold = adaptiveStrategy.Tracker.GetThreshold(category);
+                                    var mult = Settings.ArtifactValueSettings.ItemPriceMultiplier.Value;
+                                    ImGui.Text($"{(baseThreshold * mult):F4}");
+                                }
+                                else
+                                {
+                                    ImGui.Text("-");
+                                }
+                            }
+
                             currentRow++;
                         }
 
-                        // Apply smooth scrolling if we have a target
                         if (targetScrollY > 0)
                         {
                             float currentScrollY = ImGui.GetScrollY();
                             float maxScrollY = ImGui.GetScrollMaxY();
                             float targetY = Math.Min(targetScrollY, maxScrollY);
-
-                            // Smooth scroll interpolation
                             float newScrollY = currentScrollY + (targetY - currentScrollY) * 0.1f;
                             ImGui.SetScrollY(newScrollY);
                         }

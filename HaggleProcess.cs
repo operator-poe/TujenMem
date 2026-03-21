@@ -8,10 +8,24 @@ namespace TujenMem;
 public class HaggleProcess
 {
   public HaggleStock Stock;
+  public IValueStrategy ValueStrategy;
 
   public HaggleProcess()
   {
     Log.Debug($"HaggleProcess initialized with {HaggleStock.Coins} coins.");
+    ValueStrategy = CreateValueStrategy();
+  }
+
+  private static IValueStrategy CreateValueStrategy()
+  {
+    var mode = TujenMem.Instance.Settings.ArtifactValueSettings.PricingStrategy?.Value ?? "Manual";
+    if (mode == "Adaptive")
+    {
+      Log.Debug("Using Adaptive value strategy.");
+      return new AdaptiveValueStrategy();
+    }
+    Log.Debug("Using Manual value strategy.");
+    return new ManualValueStrategy();
   }
 
   public HaggleProcessWindow CurrentWindow = null;
@@ -39,7 +53,7 @@ public class HaggleProcess
         Error.AddAndShow("Error pricing items.", $"Too many attempts to price items. Stopping.\nThis could be related to missing Ninja data.");
         return false;
       }
-      await CurrentWindow.GetItemPrices();
+      await CurrentWindow.GetItemPrices(ValueStrategy);
       await TaskUtils.NextFrame();
     }
     await TaskUtils.NextFrame();
@@ -51,6 +65,8 @@ public class HaggleProcess
 
       await CurrentWindow.HaggleForItems();
     }
+
+    ValueStrategy.OnWindowComplete(CurrentWindow.Items);
 
     // Clear items to free up memory (only when not in debug mode)
     if (!TujenMem.Instance.Settings.DebugOnly)

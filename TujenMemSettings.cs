@@ -431,6 +431,13 @@ public class HaggleMultiplierSettings
 public class ArtifactValueSettings
 {
 
+    [Menu("Pricing Strategy", "Manual: use configured artifact values and multiplier. Adaptive: auto-learn buy thresholds from historical data.")]
+    public ListNode PricingStrategy { get; set; } = new ListNode
+    {
+        Values = new List<string> { "Manual", "Adaptive" },
+        Value = "Manual"
+    };
+
     [Menu("Ignore Artifact Minimum Check", "If enabled, bypasses all artifact quantity checks and forces the process to run regardless of artifact amounts. WARNING: Process may fail if you run out of artifacts.")]
     public ToggleNode IgnoreArtifactMinimumCheck { get; set; } = new ToggleNode(false);
 
