@@ -581,20 +581,16 @@ public class PrepareLogbookSettings
 
     public ToggleNode EnableRolling { get; set; } = new ToggleNode(true);
     public ToggleNode EnableBlessing { get; set; } = new ToggleNode(true);
+    [Menu("Show Item Overlay", "Show green/yellow/red overlay on logbooks and maps in inventory")]
+    public ToggleNode ShowItemOverlay { get; set; } = new ToggleNode(false);
     [JsonIgnore]
     public CustomNode FactionOrderNode { get; set; }
     [JsonIgnore]
     public CustomNode AreaOrderNode { get; set; }
 
     public RangeNode<int> MinQuantity { get; set; } = new RangeNode<int>(60, 1, 200);
-    public RangeNode<int> MinScarabsT17 { get; set; } = new RangeNode<int>(100, 0, 200);
-    public RangeNode<int> MinMapsT17 { get; set; } = new RangeNode<int>(100, 0, 200);
-    public RangeNode<int> MinCurrencyT17 { get; set; } = new RangeNode<int>(100, 0, 200);
-    public RangeNode<int> MinPackSizeT17 { get; set; } = new RangeNode<int>(50, 0, 100);
-    public ToggleNode MinT17OrMode { get; set; } = new ToggleNode(true);
     public TextNode ModsBlackList { get; set; } = new TextNode("regenerate");
     public ToggleNode UseChaos { get; set; } = new ToggleNode(true);
-    public ToggleNode UseChiselsForMaps { get; set; } = new ToggleNode(false);
 
     public ToggleNode Bless_ExplosiveRange { get; set; } = new ToggleNode(true);
     public RangeNode<int> Bless_ExplosiveRange_Min { get; set; } = new RangeNode<int>(40, 20, 50);
@@ -697,9 +693,6 @@ public class SillyOrExperimenalFeatures
     public RangeNode<int> JewelChaosThreshold { get; set; } = new RangeNode<int>(10, 0, 1000);
     [Menu("Show Inventory Snapshot Visualization", "Show visual representation of snapshot items when inventory is open")]
     public ToggleNode ShowInventorySnapshotVisualization { get; set; } = new ToggleNode(false);
-
-    [Menu("Show Logbook Overlay", "Show quantity percentage and readiness status on logbooks in inventory")]
-    public ToggleNode ShowLogbookOverlay { get; set; } = new ToggleNode(false);
 
     public RangeNode<int> GwennenRefreshPrice { get; set; } = new RangeNode<int>(1, 1, 100);
 }

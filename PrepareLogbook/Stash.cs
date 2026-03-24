@@ -20,7 +20,6 @@ public class PStash
     "Chaos Orb",
     "Blessed Orb",
     "Divine Orb",
-    "Cartographer's Chisel"
   };
 
   public Dictionary<string, Currency> Currencies { get; set; } = new Dictionary<string, Currency>();
@@ -86,14 +85,6 @@ public class PStash
     get
     {
       return Currencies["Regal Orb"];
-    }
-  }
-
-  public Currency Chisel
-  {
-    get
-    {
-      return Currencies["Cartographer's Chisel"];
     }
   }
 

@@ -115,26 +115,6 @@ public class Runner
     }
     await Stash.CleanUp();
 
-    // Apply chisels to maps
-    if (TujenMem.Instance.Settings.PrepareLogbookSettings.UseChiselsForMaps)
-    {
-      foreach (var l in Inventory.Logbooks)
-      {
-        if (l.IsCorrupted) continue;
-        if (l is Map map && map.Quality < 20)
-        {
-          double needed = (20 - map.Quality) / 5;
-          needed = Math.Max(Math.Ceiling(needed), 1);
-          for (int i = 0; i < needed; i++)
-          {
-            await Stash.Chisel.Use(l.Position);
-          }
-          await InputAsync.WaitX(5);
-        }
-      }
-      await Stash.CleanUp();
-    }
-
     // Alch normal logbooks
     var alchOrb = Stash.Binding.StackSize > Stash.Alchemy.StackSize ? Stash.Binding : Stash.Alchemy;
     await Stash.CleanUp();
@@ -282,52 +262,11 @@ public class Runner
   private static bool ShouldContinueProcessing(ReRollable l, List<string> badMods)
   {
     var settings = TujenMem.Instance.Settings.PrepareLogbookSettings;
-    var mapInfo = l.Data.MapInfo;
 
     bool isQuantityTooLow = (l.Quantity ?? 0) < settings.MinQuantity;
     bool hasBadMods = l.Mods.Any(entry => badMods.Any(term => entry.Contains(term)));
 
-    if (isQuantityTooLow || hasBadMods)
-    {
-      return true;
-    }
-
-    bool isHighTier = mapInfo.Tier >= 17 || mapInfo.Influence.Memory;
-    Log.Debug($"Is high tier: {isHighTier}");
-    Log.Debug($"Map info: {mapInfo.Tier} {mapInfo.Influence.Memory}");
-
-    if (!isHighTier)
-    {
-      return false;
-    }
-
-    bool shouldCheckScarabs = settings.MinScarabsT17 >= 1;
-    bool shouldCheckMaps = settings.MinMapsT17 >= 1;
-    bool shouldCheckCurrency = settings.MinCurrencyT17 >= 1;
-    bool shouldCheckPackSize = settings.MinPackSizeT17 >= 1;
-
-    bool hasEnoughScarabs = mapInfo.MoreScarabs > settings.MinScarabsT17;
-    bool hasEnoughMaps = mapInfo.MoreMaps > settings.MinMapsT17;
-    bool hasEnoughCurrency = mapInfo.MoreCurrency > settings.MinCurrencyT17;
-    bool hasEnoughPackSize = mapInfo.PackSize > settings.MinPackSizeT17;
-
-    if (settings.MinT17OrMode)
-    {
-      if (shouldCheckScarabs && hasEnoughScarabs) return false;
-      if (shouldCheckMaps && hasEnoughMaps) return false;
-      if (shouldCheckCurrency && hasEnoughCurrency) return false;
-      if (shouldCheckPackSize && hasEnoughPackSize) return false;
-    }
-
-    if (
-      (shouldCheckScarabs && !hasEnoughScarabs) ||
-      (shouldCheckMaps && !hasEnoughMaps) ||
-      (shouldCheckCurrency && !hasEnoughCurrency) ||
-       (shouldCheckPackSize && !hasEnoughPackSize)
-    ) return true;
-
-    return false;
-
+    return isQuantityTooLow || hasBadMods;
   }
 
   private static async SyncTask<bool> BlessLogbooks()

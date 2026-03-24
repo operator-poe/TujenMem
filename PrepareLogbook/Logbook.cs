@@ -173,6 +173,23 @@ public class ReRollable
 
   }
 
+  public int? QuantityFromStats
+  {
+    get
+    {
+      if (Item == null) return null;
+      var mods = Item.GetComponent<ExileCore.PoEMemory.Components.Mods>();
+      if (mods?.HumanStats == null) return null;
+      foreach (var stat in mods.HumanStats)
+      {
+        var match = Regex.Match(stat, @"\+(\d+)%.*quantity", RegexOptions.IgnoreCase);
+        if (match.Success)
+          return int.Parse(match.Groups[1].Value);
+      }
+      return 0;
+    }
+  }
+
   public List<string> Mods
   {
     get

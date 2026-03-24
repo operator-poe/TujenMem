@@ -17,6 +17,8 @@ using System;
 
 namespace TujenMem;
 
+public enum ItemReadiness { NotReady, ModsOkQuantityLow, Ready }
+
 public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
 {
     internal static TujenMem Instance;
@@ -27,7 +29,6 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private bool _areaHasVorana = false;
     private bool _stopAfterCurrentWindow = false;
     private bool _wasStoppedAfterCurrentWindow = false;
-
     public override bool Initialise()
     {
         if (Instance == null)
@@ -52,7 +53,6 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Settings.HotKeySettings.InventoryHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.InventoryHotKey.Value); };
         Input.RegisterKey(Settings.HotKeySettings.TestHotKey.Value);
         Settings.HotKeySettings.TestHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.TestHotKey.Value); };
-
         Ninja.CheckIntegrity();
         Task.Run(Ninja.Parse);
 
@@ -923,8 +923,52 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
         }
 
-        // Render logbook overlay (moved to PrepareLogbook.Inventory)
-        // PrepareLogbook.Inventory.RenderOverlay();
+        if (Settings.PrepareLogbookSettings.ShowItemOverlay &&
+            GameController.IngameState.IngameUi.InventoryPanel[InventoryIndex.PlayerInventory] is { IsVisible: true } inventoryPanelForOverlay)
+        {
+            var prepSettings = Settings.PrepareLogbookSettings;
+            foreach (var invItem in inventoryPanelForOverlay.VisibleInventoryItems)
+            {
+                var path = invItem.Item?.Path;
+                if (path == null) continue;
+
+                PrepareLogbook.ReRollable rerollable = null;
+                if (path.Contains("ExpeditionLogbook"))
+                {
+                    rerollable = new PrepareLogbook.Logbook { GridPosition = invItem.GetClientRect() };
+                }
+                else if (path.Contains("/Maps/"))
+                {
+                    rerollable = new PrepareLogbook.Map { GridPosition = invItem.GetClientRect() };
+                }
+
+                if (rerollable == null) continue;
+
+                var readiness = GetItemReadiness(rerollable, prepSettings);
+                uint fillColor, borderColor;
+                switch (readiness)
+                {
+                    case ItemReadiness.Ready:
+                        fillColor = 0x4000FF00;
+                        borderColor = 0xFF00FF00;
+                        break;
+                    case ItemReadiness.ModsOkQuantityLow:
+                        fillColor = 0x4000FFFF;
+                        borderColor = 0xFF00FFFF;
+                        break;
+                    default:
+                        fillColor = 0x400000FF;
+                        borderColor = 0xFF0000FF;
+                        break;
+                }
+
+                var rect = invItem.GetClientRect();
+                var topLeft = new System.Numerics.Vector2(rect.X, rect.Y);
+                var bottomRight = new System.Numerics.Vector2(rect.X + rect.Width, rect.Y + rect.Height);
+                drawList.AddRectFilled(topLeft, bottomRight, fillColor);
+                drawList.AddRect(topLeft, bottomRight, borderColor, 0, ImDrawFlags.None, 2);
+            }
+        }
 
         var expeditionWindow = GameController.IngameState.IngameUi.ExpeditionWindow;
         if (Settings.ExpeditionMapHelper && expeditionWindow is { IsVisible: true })
@@ -1059,65 +1103,23 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         }
     }
 
-    public bool IsLogbookReady(PrepareLogbook.Logbook logbook, PrepareLogbookSettings settings)
+    public ItemReadiness GetItemReadiness(PrepareLogbook.ReRollable item, PrepareLogbookSettings settings)
     {
-        // Check if logbook is corrupted
-        if (logbook.IsCorrupted)
-            return false;
 
-        // Check if logbook is identified
-        if (!logbook.IsIdentified)
-            return false;
+        if (!item.IsIdentified)
+            return ItemReadiness.NotReady;
 
-        // Check quantity threshold
-        var quantity = logbook.Quantity ?? 0;
-        if (quantity < settings.MinQuantity)
-            return false;
-
-        // Check for bad mods
         var badMods = settings.ModsBlackList.Value.Split(',').Select(x => x.ToLower()).ToList();
-        if (logbook.Mods.Any(entry => badMods.Any(term => entry.Contains(term))))
-            return false;
+        if (item.Mods.Any(entry => badMods.Any(term => entry.Contains(term))))
+            return ItemReadiness.NotReady;
 
-        // For T17+ maps, check additional criteria
-        var mapInfo = logbook.Data?.MapInfo;
-        if (mapInfo != null && mapInfo.Tier >= 17)
-        {
-            bool shouldCheckScarabs = settings.MinScarabsT17 >= 1;
-            bool shouldCheckMaps = settings.MinMapsT17 >= 1;
-            bool shouldCheckCurrency = settings.MinCurrencyT17 >= 1;
-            bool shouldCheckPackSize = settings.MinPackSizeT17 >= 1;
+        if (item is PrepareLogbook.Logbook logbook && logbook.Rarity == ItemRarity.Rare && !logbook.IsBlessed)
+            return ItemReadiness.NotReady;
 
-            bool hasEnoughScarabs = mapInfo.MoreScarabs >= settings.MinScarabsT17;
-            bool hasEnoughMaps = mapInfo.MoreMaps >= settings.MinMapsT17;
-            bool hasEnoughCurrency = mapInfo.MoreCurrency >= settings.MinCurrencyT17;
-            bool hasEnoughPackSize = mapInfo.PackSize >= settings.MinPackSizeT17;
+        var quantity = item.Quantity ?? item.QuantityFromStats ?? 0;
+        if (quantity < settings.MinQuantity)
+            return ItemReadiness.ModsOkQuantityLow;
 
-            if (settings.MinT17OrMode)
-            {
-                // In OR mode, any one criterion being met is enough
-                if (shouldCheckScarabs && hasEnoughScarabs) return true;
-                if (shouldCheckMaps && hasEnoughMaps) return true;
-                if (shouldCheckCurrency && hasEnoughCurrency) return true;
-                if (shouldCheckPackSize && hasEnoughPackSize) return true;
-
-                // If none of the enabled criteria are met, it's not ready
-                return false;
-            }
-            else
-            {
-                // In AND mode, all enabled criteria must be met
-                if (shouldCheckScarabs && !hasEnoughScarabs) return false;
-                if (shouldCheckMaps && !hasEnoughMaps) return false;
-                if (shouldCheckCurrency && !hasEnoughCurrency) return false;
-                if (shouldCheckPackSize && !hasEnoughPackSize) return false;
-            }
-        }
-
-        // For logbooks, check if they need blessing
-        if (logbook.Rarity == ItemRarity.Rare && !logbook.IsBlessed)
-            return false;
-
-        return true;
+        return ItemReadiness.Ready;
     }
 }
