@@ -12,15 +12,15 @@ public class MemoryMapOverlay : IInventoryOverlayRenderer
     private readonly CachedValue<List<OverlayDrawItem>> _cache;
 
     // ARGB color constants
-    private const uint ColorBgDark   = 0xCC000000; // semi-transparent black background
-    private const uint ColorWhite    = 0xFFFFFFFF;
-    private const uint ColorGrey     = 0xFFAAAAAA;
-    private const uint ColorGood     = 0xFF00DD00; // green text
-    private const uint ColorGreat    = 0xFFFFCC00; // gold text
-    private const uint ColorFillLow  = 0x20FFFFFF; // very faint white
+    private const uint ColorBgDark = 0xCC000000; // semi-transparent black background
+    private const uint ColorWhite = 0xFFFFFFFF;
+    private const uint ColorGrey = 0xFFAAAAAA;
+    private const uint ColorGood = 0xFF00DD00; // green text
+    private const uint ColorGreat = 0xFFFFCC00; // gold text
+    private const uint ColorFillLow = 0x20FFFFFF; // very faint white
     private const uint ColorFillGood = 0x2800FF00; // faint green
     private const uint ColorFillGreat = 0x30FFCC00; // faint gold
-    private const uint ColorBorderGood  = 0xFF00AA00;
+    private const uint ColorBorderGood = 0xFF00AA00;
     private const uint ColorBorderGreat = 0xFFDDAA00;
 
     public MemoryMapOverlay()
