@@ -110,7 +110,14 @@ public class MemoryMapOverlay : IInventoryOverlayRenderer
 
                 double rawPrice = MemoryMapPriceModel.EstimatePrice(
                     stats.Quantity, stats.Rarity, stats.PackSize,
-                    stats.MoreMaps, stats.MoreCurrency);
+                    stats.MoreMaps, stats.MoreCurrency,
+                    settings.ScarcityWeight / 100.0,
+                    settings.CurrencyThreshold,
+                    settings.RarityThreshold,
+                    settings.QuantityThreshold,
+                    settings.CurrencyCeiling,
+                    settings.RarityCeiling,
+                    settings.QuantityCeiling);
 
                 double displayPrice = MemoryMapPriceModel.AdjustedPrice(
                     rawPrice, settings.DiscountPct, settings.Percentile);

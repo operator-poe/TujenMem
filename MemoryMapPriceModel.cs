@@ -37,13 +37,28 @@ public static class MemoryMapPriceModel
 
     /// <summary>
     /// Estimate the price of a Memory-influenced map in chaos orbs.
+    /// scarcityWeight controls the log-ceiling premium for stats approaching
+    /// their practical max. 0 = disabled, 0.15 = gentle, 0.3 = aggressive.
+    /// Threshold/ceiling params control when scarcity kicks in and what the
+    /// practical maximum is for each stat.
     /// </summary>
     public static double EstimatePrice(int quantity, int rarity, int packSize,
-                                        int moreMaps, int moreCurrency)
+                                        int moreMaps, int moreCurrency,
+                                        double scarcityWeight = 0,
+                                        int currencyThreshold = 85,
+                                        int rarityThreshold = 150,
+                                        int quantityThreshold = 115,
+                                        int currencyCeiling = 320,
+                                        int rarityCeiling = 400,
+                                        int quantityCeiling = 160)
     {
         double dq = quantity - 110.0;
         double dr = rarity - 120.0;
-        double dps = packSize - 40.0;
+        // Soft-cap pack size: the regression coefficient (0.059/unit) was trained
+        // on data with pack size 30–65. Beyond ~55, apply sqrt diminishing returns
+        // so extreme values (80+) don't dominate the estimate.
+        double rawDps = packSize - 40.0;
+        double dps = rawDps <= 15 ? rawDps : 15.0 + Math.Sqrt(Math.Max(0, rawDps - 15.0)) * 4.0;
         double rarHigh = Math.Max(0, rarity - 200);
         double currHigh = moreCurrency >= 90 ? 1.0 : 0.0;
 
@@ -58,7 +73,25 @@ public static class MemoryMapPriceModel
             + BetaRarCurr * (rarity * moreCurrency / 10000.0)
             + BetaCurrHi * currHigh;
 
-        return Math.Exp(logPrice);
+        double basePrice = Math.Exp(logPrice);
+
+        // Log-ceiling scarcity premium: as a stat approaches its practical
+        // maximum, supply drops and price accelerates.
+        // Formula: multiplier = 1 + weight * ln(ceiling / (ceiling - stat))
+        // At stat=0: multiplier=1. At 90% of ceiling: ~1 + weight*2.3.
+        if (scarcityWeight > 0)
+        {
+            double scarcity = 1.0;
+            if (moreCurrency >= currencyThreshold)
+                scarcity *= 1.0 + scarcityWeight * Math.Log((double)currencyCeiling / Math.Max(1, currencyCeiling - moreCurrency));
+            if (rarity >= rarityThreshold)
+                scarcity *= 1.0 + scarcityWeight * Math.Log((double)rarityCeiling / Math.Max(1, rarityCeiling - rarity));
+            if (quantity >= quantityThreshold)
+                scarcity *= 1.0 + scarcityWeight * Math.Log((double)quantityCeiling / Math.Max(1, quantityCeiling - quantity));
+            basePrice *= scarcity;
+        }
+
+        return basePrice;
     }
 
     /// <summary>
@@ -84,7 +117,7 @@ public static class MemoryMapPriceModel
     public static string FormatPrice(double chaos, double divineRate = 260)
     {
         if (chaos >= divineRate)
-            return $"{chaos / divineRate:F1}d";
+            return $"{chaos:F0}c ({chaos / divineRate:F1}d)";
         return $"{chaos:F0}c";
     }
 
