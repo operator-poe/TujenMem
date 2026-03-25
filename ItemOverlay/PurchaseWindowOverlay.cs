@@ -1,12 +1,18 @@
 using System;
 using System.Collections.Generic;
+using ExileCore.Shared.Cache;
 using ImGuiNET;
 
 namespace TujenMem.ItemOverlay;
 
 public class PurchaseWindowOverlay : IInventoryOverlayRenderer
 {
-    private List<OverlayDrawItem> _cache = new();
+    private readonly CachedValue<List<OverlayDrawItem>> _cache;
+
+    public PurchaseWindowOverlay()
+    {
+        _cache = new TimeCache<List<OverlayDrawItem>>(BuildCache, 250);
+    }
 
     public bool ShouldRender()
     {
@@ -15,16 +21,19 @@ public class PurchaseWindowOverlay : IInventoryOverlayRenderer
                    .PurchaseWindow is { IsVisible: true };
     }
 
-    public void Update()
+    private List<OverlayDrawItem> BuildCache()
     {
         var items = new List<OverlayDrawItem>();
         var purchaseWindow = TujenMem.Instance.GameController.IngameState.IngameUi.PurchaseWindow;
-        var visibleItems = purchaseWindow.TabContainer.VisibleStash.VisibleInventoryItems;
+        if (purchaseWindow == null) return items;
+
+        var visibleItems = purchaseWindow.TabContainer?.VisibleStash?.VisibleInventoryItems;
+        if (visibleItems == null) return items;
 
         foreach (var item in visibleItems)
         {
             var entity = item.Entity;
-            var baseItem = entity.GetComponent<ExileCore.PoEMemory.Components.Base>();
+            var baseItem = entity?.GetComponent<ExileCore.PoEMemory.Components.Base>();
             var price = baseItem?.PublicPrice;
 
             if (string.IsNullOrEmpty(price)) continue;
@@ -55,12 +64,12 @@ public class PurchaseWindowOverlay : IInventoryOverlayRenderer
             });
         }
 
-        _cache = items;
+        return items;
     }
 
     public void Render(ImDrawListPtr drawList)
     {
-        foreach (var item in _cache)
+        foreach (var item in _cache.Value)
         {
             if (item.FillColor != 0)
                 drawList.AddRectFilled(item.TopLeft, item.BottomRight, item.FillColor);

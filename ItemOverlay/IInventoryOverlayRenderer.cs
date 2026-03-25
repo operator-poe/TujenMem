@@ -15,6 +15,5 @@ public struct OverlayDrawItem
 public interface IInventoryOverlayRenderer
 {
     bool ShouldRender();
-    void Update();
     void Render(ImDrawListPtr drawList);
 }
