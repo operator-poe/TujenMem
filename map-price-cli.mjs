@@ -18,6 +18,7 @@
  *   --scarabs <n>          Min "more scarab drops" (pseudo stat)
  *   --currency <n>         Min "more currency drops" (pseudo stat)
  *   --min-price <amt><c|d> Min price, e.g. 3d (3 divine) or 300c (300 chaos)
+ *   --output <file>        Write structured JSON results to file
  */
 
 import { execSync } from 'node:child_process'
@@ -80,11 +81,13 @@ function parseArgs () {
     scarabs: null,
     currency: null,
     minPrice: null,
-    priceCurrency: null
+    priceCurrency: null,
+    output: null
   }
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
+      case '--output': opts.output = args[++i]; break
       case '--rarity': opts.rarity = parseInt(args[++i]); break
       case '--quantity': opts.quantity = parseInt(args[++i]); break
       case '--pack-size': opts.packSize = parseInt(args[++i]); break
@@ -263,6 +266,36 @@ async function fetchResults (queryId, resultIds) {
   return []
 }
 
+// --- Result extraction ---
+
+const PROP_TYPE = { quantity: 2, rarity: 3, packSize: 4, moreMaps: 88, moreScarabs: 89, moreCurrency: 90 }
+
+function extractStat (properties, type) {
+  const prop = properties?.find(p => p.type === type)
+  if (!prop) return null
+  const raw = prop.values?.[0]?.[0]
+  if (typeof raw !== 'string') return null
+  return parseInt(raw.replace(/[+%]/g, ''))
+}
+
+function cleanResult (r) {
+  const props = r.item?.properties
+  return {
+    price: r.listing?.price
+      ? { amount: r.listing.price.amount, currency: r.listing.price.currency }
+      : null,
+    name: r.item?.name || null,
+    quantity: extractStat(props, PROP_TYPE.quantity),
+    rarity: extractStat(props, PROP_TYPE.rarity),
+    packSize: extractStat(props, PROP_TYPE.packSize),
+    moreMaps: extractStat(props, PROP_TYPE.moreMaps),
+    moreScarabs: extractStat(props, PROP_TYPE.moreScarabs),
+    moreCurrency: extractStat(props, PROP_TYPE.moreCurrency),
+    mods: r.item?.explicitMods || [],
+    listed: r.listing?.indexed || null
+  }
+}
+
 // --- Display ---
 
 function displayTradeResults (results) {
@@ -308,7 +341,20 @@ async function main () {
 
   displayTradeResults(allResults)
 
-  console.log(`\nhttps://${TRADE_HOST}/trade/search/${encodeURIComponent(LEAGUE)}/${search.id}`)
+  const queryUrl = `https://${TRADE_HOST}/trade/search/${encodeURIComponent(LEAGUE)}/${search.id}`
+  console.log(`\n${queryUrl}`)
+
+  if (opts.output) {
+    const { writeFileSync } = await import('node:fs')
+    const output = {
+      total: search.total,
+      listed_count: allResults.length,
+      query_url: queryUrl,
+      results: allResults.map(cleanResult)
+    }
+    writeFileSync(opts.output, JSON.stringify(output, null, 2))
+    console.error(`Results written to ${opts.output}`)
+  }
 }
 
 main().catch(err => {
