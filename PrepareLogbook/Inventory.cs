@@ -1,43 +1,12 @@
 using System.Linq;
-using System.Collections.Generic;
 using ExileCore.Shared.Enums;
 using ExileCore.PoEMemory.Components;
 using SharpDX;
-using ExileCore;
 
 namespace TujenMem.PrepareLogbook;
 
-public class Inventory
+public static class Inventory
 {
-  public List<ReRollable> Logbooks { get; set; } = new List<ReRollable>();
-
-  public Inventory()
-  {
-    Logbooks = new List<ReRollable>();
-    var inventory = TujenMem.Instance.GameController.IngameState.IngameUi.InventoryPanel[InventoryIndex.PlayerInventory];
-    var inventoryItems = inventory.VisibleInventoryItems;
-    for (int i = 0; i < inventoryItems.Count(); i++)
-    {
-      if (inventoryItems.ElementAt(i).Item.Path.Contains("ExpeditionLogbook"))
-      {
-        Logbooks.Add(new Logbook
-        {
-          GridPosition = inventoryItems.ElementAt(i).GetClientRect(),
-        });
-      }
-      else if
-       (inventoryItems.ElementAt(i).Item.Path.Contains("/Maps/"))
-      {
-        Logbooks.Add(new Map
-        {
-          GridPosition = inventoryItems.ElementAt(i).GetClientRect(),
-          Quality = inventoryItems.ElementAt(i).Item.GetComponent<Quality>()?.ItemQuality ?? 0,
-          Tier = inventoryItems.ElementAt(i).Item.GetComponent<ExileCore.PoEMemory.Components.MapKey>()?.Tier ?? 0,
-        });
-      }
-    }
-  }
-
   public static int DivineCount
   {
     get
@@ -106,11 +75,11 @@ public class Inventory
         return position;
       }
 
-      bool[,] grid = new bool[gridWidth, gridHeight]; // False by default, representing free slots
+      bool[,] grid = new bool[gridWidth, gridHeight];
 
       foreach (var item in inventorySlotItems)
       {
-        grid[item.PosX, item.PosY] = true; // Mark the slot as occupied
+        grid[item.PosX, item.PosY] = true;
       }
 
       for (int x = 0; x < gridWidth; x++)
@@ -130,5 +99,4 @@ public class Inventory
       return Vector2.Zero;
     }
   }
-
 }

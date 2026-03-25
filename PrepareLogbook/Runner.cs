@@ -1,13 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using ExileCore;
 using ExileCore.PoEMemory.Elements.InventoryElements;
 using ExileCore.Shared;
 using ExileCore.Shared.Enums;
-using ItemFilterLibrary;
-using SharpDX;
+using TujenMem.ItemRoller;
 
 namespace TujenMem.PrepareLogbook;
 
@@ -15,45 +9,33 @@ public class Runner
 {
   public static string CoroutineNameRollAndBless { get; set; } = "TujenMem_PrepareLogbook_RollAndBless";
 
-  private static PStash Stash { get; set; }
-  private static Inventory Inventory { get; set; }
+  private static ItemRollerManager _rollerManager;
+
+  public static void SetRollerManager(ItemRollerManager manager)
+  {
+    _rollerManager = manager;
+  }
 
   public static async SyncTask<bool> RollAndBlessLogbooksCoroutine()
   {
     Log.Debug("Starting RollAndBlessLogbooksCoroutine");
-    Stash = new PStash();
-    Inventory = new Inventory();
 
-    if (TujenMem.Instance.Settings.PrepareLogbookSettings.EnableRolling)
+    if (_rollerManager == null)
     {
-      Log.Debug("Rolling is enabled, starting roll process");
-      await RollLogbooks();
-      Log.Debug("Roll process completed");
-    }
-    else
-    {
-      Log.Debug("Rolling is disabled, skipping roll process");
+      Log.Error("RollerManager not set");
+      return false;
     }
 
-    if (TujenMem.Instance.Settings.PrepareLogbookSettings.EnableBlessing)
-    {
-      Log.Debug("Blessing is enabled, starting bless process");
-      await BlessLogbooks();
-      Log.Debug("Bless process completed");
-    }
-    else
-    {
-      Log.Debug("Blessing is disabled, skipping bless process");
-    }
-
-    Log.Debug("RollAndBlessLogbooksCoroutine completed");
-    return await Stash.CleanUp();
+    return await _rollerManager.RollAll();
   }
 
   public static async SyncTask<bool> IdentifyItemsInStash()
   {
     Log.Debug("Instantiating Stash");
-    Stash = new PStash(false);
+
+    var currencyNames = new[] { "Scroll of Wisdom" };
+    var stash = new RollerStash(currencyNames, false);
+
     var inventory = TujenMem.Instance.GameController.IngameState.IngameUi.InventoryPanel[InventoryIndex.PlayerInventory];
 
     Log.Debug("Getting Wisdom");
@@ -75,7 +57,7 @@ public class Runner
     };
 
     Log.Debug("Getting Unidentified Uniques");
-    var unidentifiedUniques = Stash.GetUnidentifiedUniques();
+    var unidentifiedUniques = stash.GetUnidentifiedUniques();
     if (unidentifiedUniques.Count == 0) return false;
     await scroll.Hold();
     foreach (var unique in unidentifiedUniques)
@@ -85,205 +67,6 @@ public class Runner
     }
     await scroll.Release();
 
-    return await Stash.CleanUp();
-  }
-
-  private static async SyncTask<bool> RollLogbooks()
-  {
-    Log.Debug("Starting logbook rolling process");
-
-    // Identify all logbooks
-    foreach (var l in Inventory.Logbooks)
-    {
-      if (l.IsCorrupted) continue;
-      if (!l.IsIdentified)
-      {
-        await Stash.Wisdom.Use(l.Position);
-      }
-    }
-    await Stash.CleanUp();
-
-    // Scour magic logbooks
-    foreach (var l in Inventory.Logbooks)
-    {
-      if (l.IsCorrupted) continue;
-      if (l.Rarity == ItemRarity.Magic)
-      {
-        await Stash.Scouring.Use(l.Position);
-        await InputAsync.WaitX(5);
-      }
-    }
-    await Stash.CleanUp();
-
-    // Alch normal logbooks
-    var alchOrb = Stash.Binding.StackSize > Stash.Alchemy.StackSize ? Stash.Binding : Stash.Alchemy;
-    await Stash.CleanUp();
-
-    // Actually roll the logbooks
-    var badMods = TujenMem.Instance.Settings.PrepareLogbookSettings.ModsBlackList.Value.Split(',').Select(x => x.ToLower()).ToList();
-
-    if (TujenMem.Instance.Settings.PrepareLogbookSettings.UseChaos)
-    {
-      Log.Debug("Using chaos orbs for rolling");
-      // Use chaos orbs - process each logbook individually
-      foreach (var l in Inventory.Logbooks)
-      {
-        if (l.IsCorrupted) continue;
-        if (l.Rarity == ItemRarity.Normal)
-        {
-          await Stash.Alchemy.Use(l.Position);
-        }
-      }
-      Log.Debug($"Inventory.Logbooks: {Inventory.Logbooks.Count}");
-
-      await Stash.Alchemy.Release();
-      foreach (var l in Inventory.Logbooks)
-      {
-        Log.Debug($"Processing logbook: {l.Item.RenderName}");
-        if (l.IsCorrupted) continue;
-        await l.Hover();
-
-        try
-        {
-          if (!ShouldContinueProcessing(l, badMods)) continue;
-        }
-        catch (Exception e)
-        {
-          Log.Error($"Error processing logbook: {e.Message}");
-          Log.Error($"Error processing logbook: {e.StackTrace}");
-        }
-        do
-        {
-          // Items should not be magic anymore but just in case do a last check (for fractures for example)
-          if (l.Rarity == ItemRarity.Magic)
-          {
-            await Stash.Regal.Use(l.Position);
-            await Stash.Regal.Release();
-          }
-
-          await Stash.Chaos.Use(l.Position);
-          await InputAsync.WaitX(5);
-
-        } while (ShouldContinueProcessing(l, badMods));
-      }
-    }
-    else
-    {
-      Log.Debug("Using alch/scour batching for rolling");
-      // Use alch/scour in batches for efficiency
-      bool needsMorePasses = true;
-      int passCount = 0;
-      const int maxPasses = 50; // Safety limit to prevent infinite loops
-
-      while (needsMorePasses && passCount < maxPasses)
-      {
-        passCount++;
-        needsMorePasses = false;
-
-        // Hover over any un-hovered logbooks to update their tooltips before processing
-        try
-        {
-          foreach (var l in Inventory.Logbooks)
-          {
-            if (l == null || l.IsCorrupted || l.IsHovered) continue;
-            await l.Hover();
-          }
-        }
-        catch (Exception e)
-        {
-          Log.Error($"Error hovering over logbook: {e.Message}");
-          Log.Error($"Error hovering over logbook: {e.StackTrace}");
-        }
-
-        // Get all logbooks that need processing
-        var logbooksToProcess = Inventory.Logbooks
-          .Where(l => l != null && !l.IsCorrupted && ShouldContinueProcessing(l, badMods))
-          .ToList();
-
-        Log.Debug($"Pass {passCount}: Found {logbooksToProcess.Count} logbooks that need processing");
-
-        if (logbooksToProcess.Count == 0)
-        {
-          Log.Debug("No logbooks need processing, stopping rolling");
-          break;
-        }
-
-        // Batch scour only logbooks that are magic or rare (need to be reset to normal)
-        var logbooksToScour = logbooksToProcess
-          .Where(l => l.Rarity == ItemRarity.Magic || l.Rarity == ItemRarity.Rare)
-          .ToList();
-
-        if (logbooksToScour.Count > 0)
-        {
-          Log.Debug($"Scouring {logbooksToScour.Count} logbooks");
-          await Stash.Scouring.Hold();
-          foreach (var l in logbooksToScour)
-          {
-            await Stash.Scouring.Use(l.Position);
-            await InputAsync.WaitX(2); // Reduced wait time for batch processing
-          }
-          await Stash.Scouring.Release();
-          await InputAsync.WaitX(5);
-        }
-
-        // Batch alch only logbooks that are normal rarity (either were normal or just scoured)
-        var logbooksToAlch = logbooksToProcess
-          .Where(l => l.Rarity == ItemRarity.Normal)
-          .ToList();
-
-        if (logbooksToAlch.Count > 0)
-        {
-          Log.Debug($"Alching {logbooksToAlch.Count} logbooks");
-          await alchOrb.Hold();
-          foreach (var l in logbooksToAlch)
-          {
-            await alchOrb.Use(l.Position);
-            await InputAsync.WaitX(2); // Reduced wait time for batch processing
-          }
-          await alchOrb.Release();
-          await InputAsync.WaitX(5);
-        }
-
-        // Check if any logbooks still need processing
-        needsMorePasses = Inventory.Logbooks
-          .Any(l => !l.IsCorrupted && ShouldContinueProcessing(l, badMods));
-      }
-
-      if (passCount >= maxPasses)
-      {
-        Log.Warning($"Stopped logbook rolling after {maxPasses} passes to prevent infinite loop");
-      }
-    }
-
-    Log.Debug("Logbook rolling process completed");
-    return await Stash.CleanUp();
-  }
-
-  private static bool ShouldContinueProcessing(ReRollable l, List<string> badMods)
-  {
-    var settings = TujenMem.Instance.Settings.PrepareLogbookSettings;
-
-    bool isQuantityTooLow = (l.Quantity ?? 0) < settings.MinQuantity;
-    bool hasBadMods = l.Mods.Any(entry => badMods.Any(term => entry.Contains(term)));
-
-    return isQuantityTooLow || hasBadMods;
-  }
-
-  private static async SyncTask<bool> BlessLogbooks()
-  {
-    foreach (var l in Inventory.Logbooks)
-    {
-      if (l.IsCorrupted) continue;
-      if (l.Rarity == ItemRarity.Rare && l is Logbook logbook)
-      {
-        while (!logbook.IsBlessed)
-        {
-          await Stash.Blessed.Use(logbook.Position);
-          await InputAsync.WaitX(5);
-        }
-      }
-    }
-    await InputAsync.WaitX(5);
-    return await Stash.CleanUp();
+    return await stash.CleanUp();
   }
 }

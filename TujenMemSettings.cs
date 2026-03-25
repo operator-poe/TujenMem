@@ -6,6 +6,7 @@ using ExileCore.Shared.Interfaces;
 using ExileCore.Shared.Nodes;
 using ImGuiNET;
 using Newtonsoft.Json;
+using TujenMem.MapRoller;
 
 namespace TujenMem;
 
@@ -380,6 +381,7 @@ public class TujenMemSettings : ISettings
     public ToggleNode PriceLv1Q20GemsAsGCP { get; set; } = new ToggleNode(true);
 
     public PrepareLogbookSettings PrepareLogbookSettings { get; set; } = new PrepareLogbookSettings();
+    public MapRollerSettings MapRollerSettings { get; set; } = new MapRollerSettings();
     public SillyOrExperimenalFeatures SillyOrExperimenalFeatures { get; set; } = new SillyOrExperimenalFeatures();
     public Gwennen Gwennen { get; set; } = new Gwennen();
     public StashSettings StashSettings { get; set; } = new StashSettings();

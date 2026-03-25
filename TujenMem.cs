@@ -30,6 +30,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private bool _stopAfterCurrentWindow = false;
     private bool _wasStoppedAfterCurrentWindow = false;
     private ItemOverlay.ItemOverlayManager _overlayManager;
+    private ItemRoller.ItemRollerManager _rollerManager;
     public override bool Initialise()
     {
         if (Instance == null)
@@ -40,8 +41,13 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         Settings.SetDefaults();
         Settings.PrepareLogbookSettings.SetDefaults();
 
+        _rollerManager = new ItemRoller.ItemRollerManager();
+        _rollerManager.Register(new PrepareLogbook.LogbookRoller(Settings.PrepareLogbookSettings));
+        _rollerManager.Register(new MapRoller.MapRoller(Settings.MapRollerSettings));
+        PrepareLogbook.Runner.SetRollerManager(_rollerManager);
+
         _overlayManager = new ItemOverlay.ItemOverlayManager();
-        _overlayManager.Register(new ItemOverlay.NormalInventoryOverlay());
+        _overlayManager.Register(new ItemOverlay.NormalInventoryOverlay(_rollerManager));
         _overlayManager.Register(new ItemOverlay.PurchaseWindowOverlay());
 
         Input.RegisterKey(Settings.HotKeySettings.StartHotKey.Value);
@@ -1063,23 +1069,4 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         }
     }
 
-    public ItemReadiness GetItemReadiness(PrepareLogbook.ReRollable item, PrepareLogbookSettings settings)
-    {
-
-        if (!item.IsIdentified)
-            return ItemReadiness.NotReady;
-
-        var badMods = settings.ModsBlackList.Value.Split(',').Select(x => x.ToLower()).ToList();
-        if (item.Mods.Any(entry => badMods.Any(term => entry.Contains(term))))
-            return ItemReadiness.NotReady;
-
-        if (item is PrepareLogbook.Logbook logbook && logbook.Rarity == ItemRarity.Rare && !logbook.IsBlessed)
-            return ItemReadiness.NotReady;
-
-        var quantity = item.Quantity ?? item.QuantityFromStats ?? 0;
-        if (quantity < settings.MinQuantity)
-            return ItemReadiness.ModsOkQuantityLow;
-
-        return ItemReadiness.Ready;
-    }
 }

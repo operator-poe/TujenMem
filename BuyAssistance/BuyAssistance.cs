@@ -8,7 +8,7 @@ using System.Windows.Forms;
 using ExileCore;
 using ExileCore.Shared;
 using ImGuiNET;
-using TujenMem.PrepareLogbook;
+using TujenMem.ItemRoller;
 using System.Globalization;
 using System.Text;
 using System.Collections.Generic;
@@ -230,19 +230,22 @@ public class BuyAssistance
     }
     await InputAsync.Wait(() => TujenMem.Instance.GameController.Window.IsForeground(), 1000, "Window could not be focused");
 
-    var stash = new PStash();
+    var stash = new RollerStash(new[] { "Divine Orb", "Chaos Orb" });
+    var divine = stash.Get("Divine Orb");
+    var chaos = stash.Get("Chaos Orb");
+
     while (PrepareLogbook.Inventory.DivineCount < CurrentOffer.Divines)
     {
       var rest = CurrentOffer.Divines - PrepareLogbook.Inventory.DivineCount;
       if (rest > 10)
       {
-        await stash.Divine.GetStack();
+        await divine.GetStack();
         await InputAsync.WaitX(5);
       }
       else
       {
         var p = PrepareLogbook.Inventory.NextFreePosition;
-        await stash.Divine.GetFraction(rest);
+        await divine.GetFraction(rest);
         await InputAsync.MoveMouseToElement(p);
         await InputAsync.WaitX(5);
         await InputAsync.Click(MouseButtons.Left);
@@ -256,13 +259,13 @@ public class BuyAssistance
       var rest = CurrentOffer.Chaos - PrepareLogbook.Inventory.ChaosCount;
       if (rest > 20)
       {
-        await stash.Chaos.GetStack();
+        await chaos.GetStack();
         await InputAsync.WaitX(5);
       }
       else
       {
         var p = PrepareLogbook.Inventory.NextFreePosition;
-        await stash.Chaos.GetFraction(rest);
+        await chaos.GetFraction(rest);
         await InputAsync.MoveMouseToElement(p);
         await InputAsync.WaitX(5);
         await InputAsync.Click(MouseButtons.Left);

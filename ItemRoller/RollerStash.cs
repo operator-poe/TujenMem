@@ -1,99 +1,38 @@
-using System.Collections;
-using ItemFilterLibrary;
 using System.Collections.Generic;
+using System.Linq;
 using ExileCore;
 using ExileCore.PoEMemory.Elements.InventoryElements;
 using ExileCore.Shared;
-using ExileCore.Shared.Enums;
-using SharpDX;
 
-namespace TujenMem.PrepareLogbook;
+namespace TujenMem.ItemRoller;
 
-
-public class PStash
+public class RollerStash
 {
-  public string[] _currencyNames = {
-    "Scroll of Wisdom",
-    "Orb of Scouring",
-    "Orb of Alchemy",
-    "Orb of Binding",
-    "Chaos Orb",
-    "Blessed Orb",
-    "Divine Orb",
-  };
+  private readonly HashSet<string> _currencyNames;
 
   public Dictionary<string, Currency> Currencies { get; set; } = new Dictionary<string, Currency>();
 
-  public Currency Wisdom
+  public RollerStash(IEnumerable<string> requiredCurrencies, bool refresh = true)
   {
-    get
-    {
-      return Currencies["Scroll of Wisdom"];
-    }
-  }
-
-  public Currency Scouring
-  {
-    get
-    {
-      return Currencies["Orb of Scouring"];
-    }
-  }
-
-  public Currency Alchemy
-  {
-    get
-    {
-      return Currencies["Orb of Alchemy"];
-    }
-  }
-
-  public Currency Binding
-  {
-    get
-    {
-      return Currencies["Orb of Binding"];
-    }
-  }
-
-  public Currency Chaos
-  {
-    get
-    {
-      return Currencies["Chaos Orb"];
-    }
-  }
-
-  public Currency Blessed
-  {
-    get
-    {
-      return Currencies["Blessed Orb"];
-    }
-  }
-
-  public Currency Divine
-  {
-    get
-    {
-      return Currencies["Divine Orb"];
-    }
-  }
-
-  public Currency Regal
-  {
-    get
-    {
-      return Currencies["Regal Orb"];
-    }
-  }
-
-  public PStash(bool refresh = true)
-  {
+    _currencyNames = new HashSet<string>(requiredCurrencies);
     if (refresh)
     {
       RefreshCurrencies();
     }
+  }
+
+  public Currency Get(string name)
+  {
+    return Currencies.TryGetValue(name, out var c) ? c : null;
+  }
+
+  public Currency GetBestAlternative(string primary, string alternative)
+  {
+    var p = Get(primary);
+    var a = Get(alternative);
+    if (p == null) return a;
+    if (a == null) return p;
+    return a.StackSize > p.StackSize ? a : p;
   }
 
   public async SyncTask<bool> CleanUp()
@@ -112,7 +51,6 @@ public class PStash
 
   public void RefreshCurrencies()
   {
-
     var stash = TujenMem.Instance.GameController.IngameState.IngameUi.StashElement;
     if (stash == null || !stash.IsVisible)
     {
@@ -167,13 +105,8 @@ public class PStash
         unidentifiedUniques.Add(Item);
       }
     }
-    // order by x and y
-    cnt = unidentifiedUniques.Count;
-    var x = 0;
     unidentifiedUniques.Sort((a, b) =>
     {
-      Log.Debug("Parsing item " + x + "/" + cnt);
-
       var aRect = a.GetClientRect();
       var bRect = b.GetClientRect();
       if (aRect.X == bRect.X)

@@ -1,45 +1,14 @@
-using System.Collections;
 using ExileCore;
 using ExileCore.Shared;
 using SharpDX;
 using System.Windows.Forms;
 
-namespace TujenMem.PrepareLogbook;
+namespace TujenMem.ItemRoller;
 
-public class Currency
+public class CurrencyByPos
 {
-  public int ChildIndex = -1;
-  public string Name;
+  public RectangleF Position { get; set; } = RectangleF.Empty;
   public bool Holding = false;
-  public int StackSize
-  {
-    get
-    {
-      if (ChildIndex == -1)
-      {
-        return 0;
-      }
-      var stash = TujenMem.Instance.GameController.IngameState.IngameUi.StashElement;
-      var item = stash.VisibleStash.VisibleInventoryItems[ChildIndex];
-      var stackSize = item.Item.GetComponent<ExileCore.PoEMemory.Components.Stack>()?.Size ?? 0;
-      return stackSize;
-    }
-  }
-
-  public RectangleF Position
-  {
-    get
-    {
-      if (ChildIndex == -1)
-      {
-        return RectangleF.Empty;
-      }
-      var stash = TujenMem.Instance.GameController.IngameState.IngameUi.StashElement;
-      var item = stash.VisibleStash.VisibleInventoryItems[ChildIndex];
-      var position = item.GetClientRect();
-      return position;
-    }
-  }
 
   public async SyncTask<bool> Hold()
   {
@@ -97,7 +66,6 @@ public class Currency
     await InputAsync.Wait(() => TujenMem.Instance.GameController.IngameState.IngameUi.GetChildAtIndex(149) is { IsVisible: true }, 1000, "Split window not opened");
     var numAsString = num.ToString();
 
-    // iterate each number and send the key
     foreach (var c in numAsString)
     {
       var key = (Keys)c;
