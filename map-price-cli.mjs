@@ -2,10 +2,13 @@
 
 /**
  * CLI tool to query PoE trade API for T16 corrupted map prices.
+ * Routes requests through Awakened PoE Trade's local proxy to avoid Cloudflare.
  * Designed to be called by an agent — never exits on transient errors.
  *
+ * Requires: Awakened PoE Trade running locally.
+ *
  * Usage:
- *   POESESSID=abc123 node map-price-cli.mjs [options]
+ *   node map-price-cli.mjs [options]
  *
  * Options (all optional):
  *   --rarity <n>          Min item rarity (map_iir)
@@ -17,22 +20,52 @@
  *   --min-price <amt><c|d> Min price, e.g. 3d (3 divine) or 300c (300 chaos)
  */
 
-const API_BASE = 'https://www.pathofexile.com'
-const POESESSID = 'edf9696b85fb2f5b60701dd25c30f9fe'
+import { execSync } from 'node:child_process'
+
+const TRADE_HOST = 'www.pathofexile.com'
 const LEAGUE = 'Mirage'
 const MAX_RETRIES = 5
 const RESULTS_LIMIT = 10
 
-if (!POESESSID) {
-  console.error('Error: POESESSID environment variable is required.')
-  process.exit(1)
-}
-
 const HEADERS = {
   'Accept': 'application/json',
-  'Content-Type': 'application/json',
-  'User-Agent': 'awakened-poe-trade-cli/1.0',
-  'Cookie': `POESESSID=${POESESSID}`
+  'Content-Type': 'application/json'
+}
+
+async function discoverProxyPort () {
+  const envPort = process.env.APT_PROXY_PORT
+  if (envPort) return parseInt(envPort)
+
+  const ps = process.platform === 'win32' ? 'powershell' : 'powershell.exe'
+  try {
+    const pids = execSync(
+      `${ps} -NoProfile -Command "Get-Process -Name 'Awakened PoE Trade' -ErrorAction Stop | Select-Object -ExpandProperty Id"`,
+      { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
+    ).trim().split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+
+    if (pids.length === 0) throw new Error('no PIDs')
+
+    const out = execSync(
+      `${ps} -NoProfile -Command "Get-NetTCPConnection -OwningProcess ${pids.join(',')} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort"`,
+      { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
+    ).trim()
+
+    const port = out.split(/\r?\n/).map(s => parseInt(s.trim())).find(n => n > 0)
+    if (!port) throw new Error('no listening port found')
+    return port
+  } catch (err) {
+    throw new Error(`Could not find Awakened PoE Trade proxy: ${err.message}. Is the app running? (or set APT_PROXY_PORT)`)
+  }
+}
+
+let proxyBase = null
+
+async function getProxyBase () {
+  if (proxyBase) return proxyBase
+  const port = await discoverProxyPort()
+  proxyBase = `http://127.0.0.1:${port}/proxy/${TRADE_HOST}`
+  console.error(`Using Awakened PoE Trade proxy on port ${port}`)
+  return proxyBase
 }
 
 // --- Arg parsing ---
@@ -176,7 +209,8 @@ async function tradeSearch (opts) {
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const res = await rateLimitedFetch(`${API_BASE}/api/trade/search/${encodeURIComponent(LEAGUE)}`, {
+      const base = await getProxyBase()
+      const res = await rateLimitedFetch(`${base}/api/trade/search/${encodeURIComponent(LEAGUE)}`, {
         method: 'POST',
         headers: HEADERS,
         body: JSON.stringify(body)
@@ -206,8 +240,9 @@ async function fetchResults (queryId, resultIds) {
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
+      const base = await getProxyBase()
       const res = await rateLimitedFetch(
-        `${API_BASE}/api/trade/fetch/${resultIds.join(',')}?query=${queryId}`,
+        `${base}/api/trade/fetch/${resultIds.join(',')}?query=${queryId}`,
         { headers: HEADERS }
       )
 
@@ -240,12 +275,12 @@ function displayTradeResults (results) {
   console.log('-'.repeat(85))
 
   for (const r of results) {
-    const price = r.listing.price
+    const price = r.listing?.price
       ? `${r.listing.price.amount} ${r.listing.price.currency}`
       : 'no price'
-    const account = r.listing.account.name
-    const ign = r.listing.account.lastCharacterName
-    const indexed = r.listing.indexed
+    const account = r.listing?.account?.name || '?'
+    const ign = r.listing?.account?.lastCharacterName || '?'
+    const indexed = r.listing?.indexed || '?'
 
     console.log(
       `${price.padEnd(20)} ${account.padEnd(25)} ${ign.padEnd(25)} ${indexed}`
@@ -273,7 +308,7 @@ async function main () {
 
   displayTradeResults(allResults)
 
-  console.log(`\nhttps://www.pathofexile.com/trade/search/${encodeURIComponent(LEAGUE)}/${search.id}`)
+  console.log(`\nhttps://${TRADE_HOST}/trade/search/${encodeURIComponent(LEAGUE)}/${search.id}`)
 }
 
 main().catch(err => {
