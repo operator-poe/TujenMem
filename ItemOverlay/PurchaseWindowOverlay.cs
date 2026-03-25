@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using ImGuiNET;
 
 namespace TujenMem.ItemOverlay;
 
 public class PurchaseWindowOverlay : IInventoryOverlayRenderer
 {
+    private List<OverlayDrawItem> _cache = new();
+
     public bool ShouldRender()
     {
         return TujenMem.Instance.Settings.PrepareLogbookSettings.ShowItemOverlay &&
@@ -12,8 +15,9 @@ public class PurchaseWindowOverlay : IInventoryOverlayRenderer
                    .PurchaseWindow is { IsVisible: true };
     }
 
-    public void Render(ImDrawListPtr drawList)
+    public void Update()
     {
+        var items = new List<OverlayDrawItem>();
         var purchaseWindow = TujenMem.Instance.GameController.IngameState.IngameUi.PurchaseWindow;
         var visibleItems = purchaseWindow.TabContainer.VisibleStash.VisibleInventoryItems;
 
@@ -38,14 +42,33 @@ public class PurchaseWindowOverlay : IInventoryOverlayRenderer
             var label = $"{amount}{currency}";
 
             var rect = item.GetClientRect();
-            var pos = new System.Numerics.Vector2(rect.X + 2, rect.Y + 2);
             var textSize = ImGui.CalcTextSize(label);
+            var pos = new System.Numerics.Vector2(rect.X + 2, rect.Y + 2);
 
-            drawList.AddRectFilled(
-                new System.Numerics.Vector2(pos.X - 2, pos.Y - 1),
-                new System.Numerics.Vector2(pos.X + textSize.X + 2, pos.Y + textSize.Y + 1),
-                0xB4000000);
-            drawList.AddText(pos, 0xFFFFFFFF, label);
+            items.Add(new OverlayDrawItem
+            {
+                TopLeft = new System.Numerics.Vector2(pos.X - 2, pos.Y - 1),
+                BottomRight = new System.Numerics.Vector2(pos.X + textSize.X + 2, pos.Y + textSize.Y + 1),
+                FillColor = 0xB4000000,
+                Text = label,
+                TextColor = 0xFFFFFFFF,
+            });
+        }
+
+        _cache = items;
+    }
+
+    public void Render(ImDrawListPtr drawList)
+    {
+        foreach (var item in _cache)
+        {
+            if (item.FillColor != 0)
+                drawList.AddRectFilled(item.TopLeft, item.BottomRight, item.FillColor);
+            if (item.Text != null)
+            {
+                var textPos = new System.Numerics.Vector2(item.TopLeft.X + 2, item.TopLeft.Y + 1);
+                drawList.AddText(textPos, item.TextColor, item.Text);
+            }
         }
     }
 }

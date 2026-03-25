@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ExileCore.Shared.Enums;
 using ImGuiNET;
 
@@ -5,6 +6,8 @@ namespace TujenMem.ItemOverlay;
 
 public class NormalInventoryOverlay : IInventoryOverlayRenderer
 {
+    private List<OverlayDrawItem> _cache = new();
+
     public bool ShouldRender()
     {
         return TujenMem.Instance.Settings.PrepareLogbookSettings.ShowItemOverlay &&
@@ -12,8 +15,9 @@ public class NormalInventoryOverlay : IInventoryOverlayRenderer
                    .InventoryPanel[InventoryIndex.PlayerInventory] is { IsVisible: true };
     }
 
-    public void Render(ImDrawListPtr drawList)
+    public void Update()
     {
+        var items = new List<OverlayDrawItem>();
         var inventoryPanel = TujenMem.Instance.GameController.IngameState.IngameUi
             .InventoryPanel[InventoryIndex.PlayerInventory];
         var prepSettings = TujenMem.Instance.Settings.PrepareLogbookSettings;
@@ -54,10 +58,26 @@ public class NormalInventoryOverlay : IInventoryOverlayRenderer
             }
 
             var rect = invItem.GetClientRect();
-            var topLeft = new System.Numerics.Vector2(rect.X, rect.Y);
-            var bottomRight = new System.Numerics.Vector2(rect.X + rect.Width, rect.Y + rect.Height);
-            drawList.AddRectFilled(topLeft, bottomRight, fillColor);
-            drawList.AddRect(topLeft, bottomRight, borderColor, 0, ImDrawFlags.None, 2);
+            items.Add(new OverlayDrawItem
+            {
+                TopLeft = new System.Numerics.Vector2(rect.X, rect.Y),
+                BottomRight = new System.Numerics.Vector2(rect.X + rect.Width, rect.Y + rect.Height),
+                FillColor = fillColor,
+                BorderColor = borderColor,
+            });
+        }
+
+        _cache = items;
+    }
+
+    public void Render(ImDrawListPtr drawList)
+    {
+        foreach (var item in _cache)
+        {
+            if (item.FillColor != 0)
+                drawList.AddRectFilled(item.TopLeft, item.BottomRight, item.FillColor);
+            if (item.BorderColor != 0)
+                drawList.AddRect(item.TopLeft, item.BottomRight, item.BorderColor, 0, ImDrawFlags.None, 2);
         }
     }
 }
