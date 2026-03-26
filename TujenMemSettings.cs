@@ -401,6 +401,9 @@ public class TujenMemSettings : ISettings
 [Submenu(CollapsedByDefault = true)]
 public class HotKeySettings
 {
+    [Menu("Enable Haggle On Start Hotkey", "If disabled, pressing the Start Hotkey will not start/stop Tujen haggling.")]
+    public ToggleNode EnableHaggleOnStartHotKey { get; set; } = new ToggleNode(true);
+
     public HotkeyNodeV2 StartHotKey { get; set; } = new HotkeyNodeV2(Keys.F1);
     public HotkeyNodeV2 StopHotKey { get; set; } = new HotkeyNodeV2(Keys.Delete);
     public HotkeyNodeV2 StopAfterCurrentWindowHotKey { get; set; } = new HotkeyNodeV2(Keys.Insert);

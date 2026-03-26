@@ -151,7 +151,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
                     HaggleState = HaggleState.Cancelling;
                 }
             }
-            else if (!isOfflineMerchant)
+            else if (!isOfflineMerchant && Settings.HotKeySettings.EnableHaggleOnStartHotKey)
             {
                 if (Core.ParallelRunner.FindByName(_coroutineName) == null)
                 {
