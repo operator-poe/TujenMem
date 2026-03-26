@@ -225,6 +225,18 @@ public class MirageWishesOverlay : IInventoryOverlayRenderer
                 AddHighlight(items, panels[i].GetClientRect(), isGreen: aspectBroken && i == aspectWinners[0]);
         }
 
+        for (int i = 0; i < 3; i++)
+        {
+            var rect = panels[i].GetClientRect();
+            items.Add(new OverlayDrawItem
+            {
+                TopLeft = new System.Numerics.Vector2(rect.X, rect.Y),
+                BottomRight = new System.Numerics.Vector2(rect.X + rect.Width, rect.Y + rect.Height),
+                Text = weights[i].ToString(),
+                TextColor = 0xFFFFFFFF,
+            });
+        }
+
         return items;
     }
 
@@ -241,12 +253,26 @@ public class MirageWishesOverlay : IInventoryOverlayRenderer
 
     public void Render(ImDrawListPtr drawList)
     {
+        var font = ImGui.GetFont();
+        var bigFontSize = font.FontSize * 4f;
+
         foreach (var item in _cache.Value)
         {
             if (item.FillColor != 0)
                 drawList.AddRectFilled(item.TopLeft, item.BottomRight, item.FillColor);
             if (item.BorderColor != 0)
                 drawList.AddRect(item.TopLeft, item.BottomRight, item.BorderColor, 0, ImDrawFlags.None, 2);
+            if (item.Text != null)
+            {
+                var textSize = font.CalcTextSizeA(bigFontSize, float.MaxValue, 0, item.Text);
+                var centerX = (item.TopLeft.X + item.BottomRight.X - textSize.X) / 2f;
+                var pos = new System.Numerics.Vector2(centerX, item.TopLeft.Y + 6);
+                const float pad = 6f;
+                var bgTL = new System.Numerics.Vector2(pos.X - pad, pos.Y - pad);
+                var bgBR = new System.Numerics.Vector2(pos.X + textSize.X + pad, pos.Y + textSize.Y + pad);
+                drawList.AddRectFilled(bgTL, bgBR, 0xEE000000, 4f);
+                drawList.AddText(font, bigFontSize, pos, item.TextColor, item.Text);
+            }
         }
     }
 }
