@@ -79,6 +79,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
     private readonly static string _coroutineName = "TujenMem_Haggle";
     private readonly static string _empty_inventory_coroutine_name = "TujenMem_Inventory";
     private readonly static string _reroll_coroutine_name = "TujenMem_Reroll";
+    private readonly static string _sell_to_merchant_coroutine_name = "TujenMem_SellToMerchant";
 
     private async SyncTask<bool> TestCoroutine()
     {
@@ -119,25 +120,54 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
             }
         }
 
-        if (Settings.HotKeySettings.StartHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.StartHotKey.Value.Key))
+        var startKeyPressed = Settings.HotKeySettings.StartHotKey.PressedOnce();
+
+        if (startKeyPressed || Input.IsKeyDown(Settings.HotKeySettings.StartHotKey.Value.Key))
         {
             Log.Debug("Start Hotkey pressed");
-            if (Core.ParallelRunner.FindByName(_coroutineName) == null)
+
+            var isOfflineMerchant =
+                GameController.IngameState.IngameUi.OfflineMerchantPanel is { IsVisible: true }
+                && GameController.IngameState.IngameUi.InventoryPanel[InventoryIndex.PlayerInventory] is { IsVisible: true }
+                && GameController.IngameState.IngameUi.AsyncItemRightClickPriceMenu is not { IsVisible: true };
+
+            if (isOfflineMerchant && startKeyPressed)
             {
-                Log.Debug("Starting Haggle Coroutine");
-                HaggleState = HaggleState.StartUp;
-                Scheduler.AddRestartableTask(
-                    () => HaggleCoroutine(),
-                    "HaggleCoroutine",
-                    () => StopAllRoutines(skipSchedulerStop: true),
-                    maxRetries: 3
-                );
-                // Scheduler.AddTask(HaggleCoroutine(), "HaggleCoroutine");
+                if (Scheduler.CurrentTask == null && Scheduler.CurrentRestartableTask == null)
+                {
+                    Log.Debug("Starting Sell To Offline Merchant Coroutine");
+                    HaggleState = HaggleState.StartUp;
+                    Scheduler.AddRestartableTask(
+                        () => SellToOfflineMerchantCoroutine(),
+                        _sell_to_merchant_coroutine_name,
+                        () => StopAllRoutines(skipSchedulerStop: true),
+                        maxRetries: 3
+                    );
+                }
+                else
+                {
+                    Log.Debug("Stopping Sell To Offline Merchant Coroutine");
+                    HaggleState = HaggleState.Cancelling;
+                }
             }
-            else
+            else if (!isOfflineMerchant)
             {
-                Log.Debug("Stopping Haggle Coroutine");
-                HaggleState = HaggleState.Cancelling;
+                if (Core.ParallelRunner.FindByName(_coroutineName) == null)
+                {
+                    Log.Debug("Starting Haggle Coroutine");
+                    HaggleState = HaggleState.StartUp;
+                    Scheduler.AddRestartableTask(
+                        () => HaggleCoroutine(),
+                        "HaggleCoroutine",
+                        () => StopAllRoutines(skipSchedulerStop: true),
+                        maxRetries: 3
+                    );
+                }
+                else
+                {
+                    Log.Debug("Stopping Haggle Coroutine");
+                    HaggleState = HaggleState.Cancelling;
+                }
             }
         }
         if (Settings.HotKeySettings.RollAndBlessHotKey.PressedOnce() || Input.IsKeyDown(Settings.HotKeySettings.RollAndBlessHotKey.Value.Key))
@@ -274,6 +304,57 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         await InputAsync.Wait();
         await InputAsync.Wait();
         await InputAsync.Wait();
+        return true;
+    }
+
+    private async SyncTask<bool> SellToOfflineMerchantCoroutine()
+    {
+        HaggleState = HaggleState.Running;
+        Log.Debug("Starting Sell To Offline Merchant process");
+
+        var itemsToSell = Stash.Inventory.GetItemsToStash(10, 11);
+        Log.Debug($"Found {itemsToSell.Count} items to sell");
+
+        foreach (var item in itemsToSell)
+        {
+            if (item?.Item == null)
+                continue;
+
+            var itemPosX = item.PosX;
+            var itemPosY = item.PosY;
+
+            await InputAsync.HoldCtrl();
+            await InputAsync.ClickElement(item.GetClientRect());
+            await InputAsync.ReleaseCtrl();
+
+            var menuAppeared = await InputAsync.Wait(
+                () => GameController.IngameState.IngameUi.AsyncItemRightClickPriceMenu is { IsVisible: true },
+                2000,
+                "AsyncItemRightClickPriceMenu not visible"
+            );
+            if (!menuAppeared)
+                continue;
+
+            await InputAsync.WaitX(3);
+            await InputAsync.KeyPress(Keys.Enter);
+
+            await InputAsync.Wait(
+                () => GameController.IngameState.IngameUi.AsyncItemRightClickPriceMenu is not { IsVisible: true },
+                2000,
+                "AsyncItemRightClickPriceMenu still visible"
+            );
+
+            await InputAsync.Wait(
+                () => Stash.Inventory.GetSlotAt(itemPosX, itemPosY) == null,
+                1000,
+                $"Item at ({itemPosX}, {itemPosY}) still present"
+            );
+
+            await InputAsync.WaitX(2);
+        }
+
+        Log.Debug("Sell To Offline Merchant complete");
+        StopAllRoutines();
         return true;
     }
 
