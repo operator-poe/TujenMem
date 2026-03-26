@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ExileCore.Shared.Cache;
@@ -39,49 +40,56 @@ public class NormalInventoryOverlay : IInventoryOverlayRenderer
 
         foreach (var invItem in inventoryPanel.VisibleInventoryItems)
         {
-            var entity = invItem.Item;
-            var path = entity?.Path;
-            if (path == null) continue;
-
-            var roller = _rollerManager.FindRoller(path);
-            if (roller == null) continue;
-
-            var showOverlay = roller switch
+            try
             {
-                PrepareLogbook.LogbookRoller => TujenMem.Instance.Settings.PrepareLogbookSettings.ShowItemOverlay.Value,
-                MapRoller.MapRoller => TujenMem.Instance.Settings.MapRollerSettings.ShowItemOverlay.Value,
-                _ => false,
-            };
-            if (!showOverlay) continue;
+                var entity = invItem.Item;
+                var path = entity?.Path;
+                if (path == null) continue;
 
-            var rerollable = roller.CreateReRollable(invItem);
-            var readiness = roller.GetReadiness(rerollable);
+                var roller = _rollerManager.FindRoller(path);
+                if (roller == null) continue;
 
-            uint fillColor, borderColor;
-            switch (readiness)
-            {
-                case ItemReadiness.Ready:
-                    fillColor = 0x4000FF00;
-                    borderColor = 0xFF00FF00;
-                    break;
-                case ItemReadiness.ModsOkQuantityLow:
-                    fillColor = 0x4000FFFF;
-                    borderColor = 0xFF00FFFF;
-                    break;
-                default:
-                    fillColor = 0x400000FF;
-                    borderColor = 0xFF0000FF;
-                    break;
+                var showOverlay = roller switch
+                {
+                    PrepareLogbook.LogbookRoller => TujenMem.Instance.Settings.PrepareLogbookSettings.ShowItemOverlay.Value,
+                    MapRoller.MapRoller => TujenMem.Instance.Settings.MapRollerSettings.ShowItemOverlay.Value,
+                    _ => false,
+                };
+                if (!showOverlay) continue;
+
+                var rerollable = roller.CreateReRollable(invItem);
+                var readiness = roller.GetReadiness(rerollable);
+
+                uint fillColor, borderColor;
+                switch (readiness)
+                {
+                    case ItemReadiness.Ready:
+                        fillColor = 0x4000FF00;
+                        borderColor = 0xFF00FF00;
+                        break;
+                    case ItemReadiness.ModsOkQuantityLow:
+                        fillColor = 0x4000FFFF;
+                        borderColor = 0xFF00FFFF;
+                        break;
+                    default:
+                        fillColor = 0x400000FF;
+                        borderColor = 0xFF0000FF;
+                        break;
+                }
+
+                var rect = invItem.GetClientRect();
+                items.Add(new OverlayDrawItem
+                {
+                    TopLeft = new System.Numerics.Vector2(rect.X, rect.Y),
+                    BottomRight = new System.Numerics.Vector2(rect.X + rect.Width, rect.Y + rect.Height),
+                    FillColor = fillColor,
+                    BorderColor = borderColor,
+                });
             }
-
-            var rect = invItem.GetClientRect();
-            items.Add(new OverlayDrawItem
+            catch (Exception)
             {
-                TopLeft = new System.Numerics.Vector2(rect.X, rect.Y),
-                BottomRight = new System.Numerics.Vector2(rect.X + rect.Width, rect.Y + rect.Height),
-                FillColor = fillColor,
-                BorderColor = borderColor,
-            });
+                // Skip items that fail to read (stale memory, etc.)
+            }
         }
 
         return items;

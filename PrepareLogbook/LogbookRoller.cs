@@ -9,10 +9,27 @@ namespace TujenMem.PrepareLogbook;
 public class LogbookRoller : IItemRoller
 {
     private readonly PrepareLogbookSettings _settings;
+    private string _cachedBlacklistRaw;
+    private List<string> _cachedBlacklist = new();
 
     public LogbookRoller(PrepareLogbookSettings settings)
     {
         _settings = settings;
+    }
+
+    private List<string> GetParsedBlacklist()
+    {
+        var raw = _settings.ModsBlackList.Value;
+        if (raw != _cachedBlacklistRaw)
+        {
+            _cachedBlacklistRaw = raw;
+            _cachedBlacklist = raw
+                .Split(',')
+                .Select(x => x.Trim().ToLower())
+                .Where(x => x.Length > 0)
+                .ToList();
+        }
+        return _cachedBlacklist;
     }
 
     public string Name => "Logbook";
@@ -23,7 +40,7 @@ public class LogbookRoller : IItemRoller
 
     public ReRollable CreateReRollable(NormalInventoryItem item)
     {
-        return new Logbook { GridPosition = item.GetClientRect() };
+        return new Logbook { GridPosition = item.GetClientRect(), DirectSlotRef = item };
     }
 
     public IEnumerable<string> RequiredCurrencies
@@ -44,11 +61,7 @@ public class LogbookRoller : IItemRoller
     public IReadOnlyList<CurrencyRound> GetCurrencyRounds()
     {
         var rounds = new List<CurrencyRound>();
-        var badMods = _settings.ModsBlackList.Value
-            .Split(',')
-            .Select(x => x.Trim().ToLower())
-            .Where(x => x.Length > 0)
-            .ToList();
+        var badMods = GetParsedBlacklist();
 
         if (_settings.EnableRolling)
         {
@@ -127,11 +140,7 @@ public class LogbookRoller : IItemRoller
         if (!item.IsIdentified)
             return ItemReadiness.NotReady;
 
-        var badMods = _settings.ModsBlackList.Value
-            .Split(',')
-            .Select(x => x.Trim().ToLower())
-            .Where(x => x.Length > 0)
-            .ToList();
+        var badMods = GetParsedBlacklist();
 
         if (item.Mods.Any(entry => badMods.Any(term => entry.Contains(term))))
             return ItemReadiness.NotReady;

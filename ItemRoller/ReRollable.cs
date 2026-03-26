@@ -13,12 +13,24 @@ namespace TujenMem.ItemRoller;
 
 public class ReRollable
 {
+  private static readonly Regex QuantityRegex = new(@"\+(\d+)%.*quantity", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+  private static readonly Regex QuantityTooltipRegex = new(@"\+(\d+)%", RegexOptions.Compiled);
+
   public RectangleF GridPosition { get; set; } = RectangleF.Empty;
+
+  /// <summary>
+  /// Optional direct reference to the inventory slot, bypassing the
+  /// expensive per-access linear scan in <see cref="Slot"/>.
+  /// </summary>
+  public NormalInventoryItem DirectSlotRef { get; set; }
 
   public NormalInventoryItem Slot
   {
     get
     {
+      if (DirectSlotRef != null)
+        return DirectSlotRef;
+
       if (GridPosition.Equals(RectangleF.Empty))
       {
         return null;
@@ -159,7 +171,7 @@ public class ReRollable
       {
         return 0;
       }
-      var match = Regex.Match(quantityNode.Text, @"\+(\d+)%");
+      var match = QuantityTooltipRegex.Match(quantityNode.Text);
 
       if (match.Success)
       {
@@ -182,7 +194,7 @@ public class ReRollable
       if (mods?.HumanStats == null) return null;
       foreach (var stat in mods.HumanStats)
       {
-        var match = Regex.Match(stat, @"\+(\d+)%.*quantity", RegexOptions.IgnoreCase);
+        var match = QuantityRegex.Match(stat);
         if (match.Success)
           return int.Parse(match.Groups[1].Value);
       }

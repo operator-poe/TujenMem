@@ -9,10 +9,27 @@ namespace TujenMem.MapRoller;
 public class MapRoller : IItemRoller
 {
     private readonly MapRollerSettings _settings;
+    private string _cachedBlacklistRaw;
+    private List<string> _cachedBlacklist = new();
 
     public MapRoller(MapRollerSettings settings)
     {
         _settings = settings;
+    }
+
+    private List<string> GetParsedBlacklist()
+    {
+        var raw = _settings.ModsBlackList.Value;
+        if (raw != _cachedBlacklistRaw)
+        {
+            _cachedBlacklistRaw = raw;
+            _cachedBlacklist = raw
+                .Split(',')
+                .Select(x => x.Trim().ToLower())
+                .Where(x => x.Length > 0)
+                .ToList();
+        }
+        return _cachedBlacklist;
     }
 
     public string Name => "Map";
@@ -26,6 +43,7 @@ public class MapRoller : IItemRoller
         return new Map
         {
             GridPosition = item.GetClientRect(),
+            DirectSlotRef = item,
             Quality = item.Item.GetComponent<ExileCore.PoEMemory.Components.Quality>()?.ItemQuality ?? 0,
             Tier = item.Item.GetComponent<ExileCore.PoEMemory.Components.MapKey>()?.Tier ?? 0,
         };
@@ -49,11 +67,7 @@ public class MapRoller : IItemRoller
     public IReadOnlyList<CurrencyRound> GetCurrencyRounds()
     {
         var rounds = new List<CurrencyRound>();
-        var badMods = _settings.ModsBlackList.Value
-            .Split(',')
-            .Select(x => x.Trim().ToLower())
-            .Where(x => x.Length > 0)
-            .ToList();
+        var badMods = GetParsedBlacklist();
 
         rounds.Add(new CurrencyRound
         {
@@ -129,11 +143,7 @@ public class MapRoller : IItemRoller
         if (!item.IsIdentified)
             return ItemReadiness.NotReady;
 
-        var badMods = _settings.ModsBlackList.Value
-            .Split(',')
-            .Select(x => x.Trim().ToLower())
-            .Where(x => x.Length > 0)
-            .ToList();
+        var badMods = GetParsedBlacklist();
 
         if (item.Mods.Any(entry => badMods.Any(term => entry.Contains(term))))
             return ItemReadiness.NotReady;
