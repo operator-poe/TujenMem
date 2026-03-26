@@ -75,7 +75,7 @@ public class MirageWishesOverlay : IInventoryOverlayRenderer
         new() { Wish = "Wish for Augury", Description = "Breaking the Astral Chain in the Mirage Area will reward a cache of Stacked Decks.", Aspect = "Knowledge", DefaultWeight = 2 },
         new() { Wish = "Wish for Distant Horizons", Description = "Breaking the Astral Chain in the Mirage Area will reward a cache of Maps.", Aspect = "Power", DefaultWeight = 2 },
         new() { Wish = "Wish for Strange Horizons", Description = "Breaking the Astral Chain in the Mirage Area will reward a Unique Map.", Aspect = "Skill", DefaultWeight = 5 },
-        new() { Wish = "Wish for Flames", Description = "Breaking the Astral Chain in the Mirage Area will reward a Coin of Power.", Aspect = "Power", DefaultWeight = 11 },
+        new() { Wish = "Wish for Flame", Description = "Breaking the Astral Chain in the Mirage Area will reward a Coin of Power.", Aspect = "Power", DefaultWeight = 11 },
         new() { Wish = "Wish for Tides", Description = "Breaking the Astral Chain in the Mirage Area will reward a Coin of Knowledge.", Aspect = "Knowledge", DefaultWeight = 10 },
         new() { Wish = "Wish for Sands", Description = "Breaking the Astral Chain in the Mirage Area will reward a Coin of Skill.", Aspect = "Skill", DefaultWeight = 12 },
         new() { Wish = "Wish for Binding", Description = "Breaking the Astral Chain in the Mirage Area will reward Orbs of Binding.", Aspect = null, DefaultWeight = 1 },
