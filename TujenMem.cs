@@ -50,6 +50,7 @@ public class TujenMem : BaseSettingsPlugin<TujenMemSettings>
         _overlayManager.Register(new ItemOverlay.NormalInventoryOverlay(_rollerManager));
         _overlayManager.Register(new ItemOverlay.PurchaseWindowOverlay());
         _overlayManager.Register(new ItemOverlay.MemoryMapOverlay());
+        _overlayManager.Register(new ItemOverlay.MirageWishesOverlay());
 
         Input.RegisterKey(Settings.HotKeySettings.StartHotKey.Value);
         Settings.HotKeySettings.StartHotKey.OnValueChanged += () => { Input.RegisterKey(Settings.HotKeySettings.StartHotKey.Value); };

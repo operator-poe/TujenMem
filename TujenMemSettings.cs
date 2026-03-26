@@ -383,6 +383,7 @@ public class TujenMemSettings : ISettings
     public PrepareLogbookSettings PrepareLogbookSettings { get; set; } = new PrepareLogbookSettings();
     public MapRollerSettings MapRollerSettings { get; set; } = new MapRollerSettings();
     public MemoryMapPriceSettings MemoryMapPriceSettings { get; set; } = new MemoryMapPriceSettings();
+    public MirageWishesSettings MirageWishesSettings { get; set; } = new MirageWishesSettings();
     public SillyOrExperimenalFeatures SillyOrExperimenalFeatures { get; set; } = new SillyOrExperimenalFeatures();
     public Gwennen Gwennen { get; set; } = new Gwennen();
     public StashSettings StashSettings { get; set; } = new StashSettings();
